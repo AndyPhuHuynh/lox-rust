@@ -1,3 +1,22 @@
 // comment
 (( )){} // grouping
 !*/+-<> <= >= = == // operators
+
+"This is a string" "This is another one"
+1234 12.34 4567 45.67
+
+and
+class
+else
+false
+fun
+for
+if
+nil
+or
+print
+return
+super
+this
+true
+var

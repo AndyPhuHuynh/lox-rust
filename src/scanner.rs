@@ -1,6 +1,6 @@
 use crate::{
     error::error,
-    token::{Token, TokenType},
+    token::{self, Token, TokenType, get_keyword},
 };
 
 pub struct Scanner<'a> {
@@ -115,6 +115,22 @@ impl<'a> Scanner<'a> {
         self.add_token(TokenType::Number(num));
     }
 
+    fn identifier(&mut self) {
+        while self.peek().is_ascii_alphanumeric() {
+            self.advance();
+        }
+
+        let str = std::str::from_utf8(&self.source[self.start..self.current])
+            .expect("Unexpected byte sequence while scanning")
+            .to_string();
+
+        if let Some(token_type) = get_keyword(&str) {
+            self.add_token(token_type);
+        } else {
+            self.add_token(TokenType::Identifier(str));
+        }
+    }
+
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
@@ -146,6 +162,7 @@ impl<'a> Scanner<'a> {
             b'\n' => self.line += 1,
             b'"' => self.string(),
             b'0'..=b'9' => self.number(),
+            b'a'..=b'z' | b'A'..=b'Z' => self.identifier(),
             _ => {
                 error(self.line, format!("Unexpected byte 0x{:x}", c));
             }
