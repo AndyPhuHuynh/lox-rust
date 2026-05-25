@@ -49,6 +49,21 @@ impl<'a> Scanner<'a> {
             .push(Token::new(r#type, lexeme.to_string(), self.line));
     }
 
+    fn add_token_conditionally(
+        &mut self,
+        expected: u8,
+        match_token: TokenType,
+        not_match_token: TokenType,
+    ) {
+        let token = if self.match_char(expected) {
+            match_token
+        } else {
+            not_match_token
+        };
+
+        self.add_token(token);
+    }
+
     fn scan_token(&mut self) {
         let c = self.advance();
         match c {
@@ -62,26 +77,10 @@ impl<'a> Scanner<'a> {
             b'+' => self.add_token(TokenType::Plus),
             b';' => self.add_token(TokenType::Semicolon),
             b'*' => self.add_token(TokenType::Star),
-            b'!' => self.add_token(if self.match_char(b'=') {
-                TokenType::BangEqual
-            } else {
-                TokenType::Bang
-            }),
-            b'=' => self.add_token(if self.match_char(b'=') {
-                TokenType::EqualEqual
-            } else {
-                TokenType::Equal
-            }),
-            b'<' => self.add_token(if self.match_char(b'=') {
-                TokenType::LessEqual
-            } else {
-                TokenType::Less
-            }),
-            b'>' => self.add_token(if self.match_char(b'=') {
-                TokenType::GreaterEqual
-            } else {
-                TokenType::Greater
-            }),
+            b'!' => self.add_token_conditionally(b'=', TokenType::BangEqual, TokenType::Bang),
+            b'=' => self.add_token_conditionally(b'=', TokenType::EqualEqual, TokenType::Equal),
+            b'<' => self.add_token_conditionally(b'=', TokenType::LessEqual, TokenType::Less),
+            b'>' => self.add_token_conditionally(b'=', TokenType::GreaterEqual, TokenType::Greater),
             b'/' => {
                 // Handle comments
                 if self.match_char(b'/') {
@@ -91,8 +90,8 @@ impl<'a> Scanner<'a> {
                 } else {
                     self.add_token(TokenType::Slash);
                 }
-            },
-            b' ' | b'\r' | b'\t' => {},
+            }
+            b' ' | b'\r' | b'\t' => {}
             b'\n' => self.line += 1,
             _ => {
                 error(self.line, format!("Unexpected byte 0x{:x}", c));
