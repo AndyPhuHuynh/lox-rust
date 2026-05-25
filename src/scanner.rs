@@ -1,10 +1,7 @@
-use std::ascii::AsciiExt;
-
-use crate::{error::error, token::{Token, TokenType}};
-
-pub fn scan_tokens(_source: &str) {
-    todo!("scan_tokens");
-}
+use crate::{
+    error::error,
+    token::{Token, TokenType},
+};
 
 pub struct Scanner<'a> {
     source: &'a [u8],
@@ -16,8 +13,8 @@ pub struct Scanner<'a> {
 }
 
 impl<'a> Scanner<'a> {
-    fn is_at_end(&mut self) -> bool {
-        self.current > self.source.len()
+    fn is_at_end(&self) -> bool {
+        self.current >= self.source.len()
     }
 
     fn advance(&mut self) -> u8 {
@@ -26,11 +23,31 @@ impl<'a> Scanner<'a> {
         c
     }
 
+    fn match_char(&mut self, expected: u8) -> bool {
+        if self.is_at_end() {
+            return false;
+        };
+        if self.source[self.current] != expected {
+            return false;
+        };
+
+        self.current += 1;
+        true
+    }
+
+    fn peek(&self) -> u8 {
+        if self.is_at_end() {
+            return b'\0';
+        }
+        return self.source[self.current];
+    }
+
     fn add_token(&mut self, r#type: TokenType) {
         let lexeme = &self.source[self.start..self.current];
         let lexeme = std::str::from_utf8(lexeme).expect("Unexpected byte sequence while scanning");
-        self.tokens.push(Token::new(r#type, lexeme.to_string(), self.line));
-    } 
+        self.tokens
+            .push(Token::new(r#type, lexeme.to_string(), self.line));
+    }
 
     fn scan_token(&mut self) {
         let c = self.advance();
@@ -45,8 +62,40 @@ impl<'a> Scanner<'a> {
             b'+' => self.add_token(TokenType::Plus),
             b';' => self.add_token(TokenType::Semicolon),
             b'*' => self.add_token(TokenType::Star),
+            b'!' => self.add_token(if self.match_char(b'=') {
+                TokenType::BangEqual
+            } else {
+                TokenType::Bang
+            }),
+            b'=' => self.add_token(if self.match_char(b'=') {
+                TokenType::EqualEqual
+            } else {
+                TokenType::Equal
+            }),
+            b'<' => self.add_token(if self.match_char(b'=') {
+                TokenType::LessEqual
+            } else {
+                TokenType::Less
+            }),
+            b'>' => self.add_token(if self.match_char(b'=') {
+                TokenType::GreaterEqual
+            } else {
+                TokenType::Greater
+            }),
+            b'/' => {
+                // Handle comments
+                if self.match_char(b'/') {
+                    while self.peek() != b'\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash);
+                }
+            },
+            b' ' | b'\r' | b'\t' => {},
+            b'\n' => self.line += 1,
             _ => {
-                error(self.line, format!("Unexpected character {}", c.to_ascii_lowercase()));
+                error(self.line, format!("Unexpected byte 0x{:x}", c));
             }
         }
     }
@@ -60,7 +109,7 @@ impl<'a> Scanner<'a> {
 
             start: 0,
             current: 0,
-            line: 1
+            line: 1,
         }
     }
 
@@ -72,7 +121,8 @@ impl<'a> Scanner<'a> {
             self.scan_token();
         }
 
-        self.tokens.push(Token::new(TokenType::Eof, "".to_string(), self.line));
+        self.tokens
+            .push(Token::new(TokenType::Eof, "".to_string(), self.line));
         &self.tokens
     }
 }

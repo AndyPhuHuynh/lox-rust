@@ -6,10 +6,12 @@ use std::env;
 use std::fs;
 use std::io::{self, Write};
 
-use crate::scanner::scan_tokens;
+use crate::scanner::Scanner;
 
 fn run(source: &str) {
-    scan_tokens(source);
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+    println!("{:?}", tokens);
 }
 
 fn run_file(path: &str) -> io::Result<()> {
