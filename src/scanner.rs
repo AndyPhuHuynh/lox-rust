@@ -42,6 +42,13 @@ impl<'a> Scanner<'a> {
         return self.source[self.current];
     }
 
+    fn peek_next(&self) -> u8 {
+        if self.current + 1 >= self.source.len() {
+            return b'\0';
+        }
+        return self.source[self.current + 1];
+    }
+
     fn add_token(&mut self, r#type: TokenType) {
         let lexeme = &self.source[self.start..self.current];
         let lexeme = std::str::from_utf8(lexeme).expect("Unexpected byte sequence while scanning");
@@ -62,6 +69,50 @@ impl<'a> Scanner<'a> {
         };
 
         self.add_token(token);
+    }
+
+    fn string(&mut self) {
+        while self.peek() != b'"' && !self.is_at_end() {
+            if self.peek() == b'\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            error(self.line, "Unterminated string");
+            return;
+        }
+
+        // The close quotation mark
+        self.advance();
+
+        let value = std::str::from_utf8(&self.source[self.start + 1..self.current - 1])
+            .expect("Unexpected byte sequence while scanning")
+            .to_string();
+
+        self.add_token(TokenType::String(value));
+    }
+
+    fn number(&mut self) {
+        while self.peek().is_ascii_digit() {
+            self.advance();
+        }
+
+        if self.peek() == b'.' && self.peek_next().is_ascii_digit() {
+            // Consume the dot
+            self.advance();
+
+            while self.peek().is_ascii_digit() {
+                self.advance();
+            }
+        }
+
+        let str = std::str::from_utf8(&self.source[self.start..self.current])
+            .expect("Unexpected byte sequence while scanning");
+        let num: f64 = str.parse().unwrap();
+
+        self.add_token(TokenType::Number(num));
     }
 
     fn scan_token(&mut self) {
@@ -93,6 +144,8 @@ impl<'a> Scanner<'a> {
             }
             b' ' | b'\r' | b'\t' => {}
             b'\n' => self.line += 1,
+            b'"' => self.string(),
+            b'0'..=b'9' => self.number(),
             _ => {
                 error(self.line, format!("Unexpected byte 0x{:x}", c));
             }

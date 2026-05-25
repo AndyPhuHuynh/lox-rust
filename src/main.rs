@@ -11,7 +11,7 @@ use crate::scanner::Scanner;
 fn run(source: &str) {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
-    println!("{:?}", tokens);
+    println!("{:#?}", tokens);
 }
 
 fn run_file(path: &str) -> io::Result<()> {
