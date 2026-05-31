@@ -1,19 +1,28 @@
 mod error;
+mod parser;
 mod scanner;
 mod syntax_tree;
 mod token;
 
+use crate::parser::Parser;
+use crate::scanner::Scanner;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 
-use crate::scanner::Scanner;
-use crate::syntax_tree::expressions::{BinaryOp, Expr, Literal, UnaryOp};
-
 fn run(source: &str) {
     let mut scanner = Scanner::new(source);
     let tokens = scanner.scan_tokens();
-    println!("{:#?}", tokens);
+
+    let mut parser = Parser::new(tokens.clone());
+    match parser.parse() {
+        Ok(expr) => {
+            print!("{}", expr.print());
+        }
+        Err(_) => {
+            println!("Unable to parse. Encountered parse error");
+        }
+    };
 }
 
 fn run_file(path: &str) -> io::Result<()> {
@@ -38,19 +47,6 @@ fn run_prompt() -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
-    let expr = Expr::binary(
-        Expr::unary(
-            UnaryOp::Negation,
-            Expr::literal_num(123f64)
-        ),
-        BinaryOp::Mul,
-        Expr::grouping(
-            Expr::literal_num(45.67)
-        )
-    );
-
-    println!("{}", expr.print());
-
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() > 1 {
         eprintln!("Usage: rlox [script]")

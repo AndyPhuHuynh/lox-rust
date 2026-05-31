@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens
     LeftParen,
@@ -49,11 +49,11 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Token {
-    r#type: TokenType,
-    lexeme: String,
-    line: usize,
+    pub r#type: TokenType,
+    pub lexeme: String,
+    pub line: usize,
 }
 
 impl Token {
@@ -83,6 +83,7 @@ pub fn get_keyword(identifier: &str) -> Option<TokenType> {
         "this" => Some(TokenType::This),
         "true" => Some(TokenType::True),
         "var" => Some(TokenType::Var),
+        "while" => Some(TokenType::While),
         _ => None,
     }
 }
