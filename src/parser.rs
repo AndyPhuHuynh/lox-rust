@@ -109,7 +109,7 @@ impl Parser {
                 TokenType::BangEqual => BinaryOp::NotEqual,
                 TokenType::EqualEqual => BinaryOp::Equal,
                 _ => {
-                    error_token(token_op, "Unexpected equality operator: {:?}");
+                    error_token(token_op.clone(), format!("Unexpected equality operator: {:?}", token_op));
                     return Err(ParseError);
                 }
             };
@@ -137,7 +137,7 @@ impl Parser {
                 TokenType::Less => BinaryOp::LessThan,
                 TokenType::LessEqual => BinaryOp::LessThanEqual,
                 _ => {
-                    error_token(token_op, "Unexpected comparison operator: {:?}");
+                    error_token(token_op.clone(), format!("Unexpected comparison operator: {:?}", token_op));
                     return Err(ParseError);
                 }
             };
@@ -158,7 +158,7 @@ impl Parser {
                 TokenType::Plus => BinaryOp::Add,
                 TokenType::Minus => BinaryOp::Sub,
                 _ => {
-                    error_token(token_op, "Unexpected term operator: {:?}");
+                    error_token(token_op.clone(), format!("Unexpected term operator: {:?}", token_op));
                     return Err(ParseError);
                 }
             };
@@ -179,7 +179,7 @@ impl Parser {
                 TokenType::Star => BinaryOp::Mul,
                 TokenType::Slash => BinaryOp::Div,
                 _ => {
-                    error_token(token_op, "Unexpected factor operator: {:?}");
+                    error_token(token_op.clone(), format!("Unexpected factor operator: {:?}", token_op));
                     return Err(ParseError);
                 }
             };
@@ -198,7 +198,7 @@ impl Parser {
                 TokenType::Bang => UnaryOp::LogicalNot,
                 TokenType::Minus => UnaryOp::Negation,
                 _ => {
-                    error_token(token_op, "Unexpected unary operator: {:?}");
+                    error_token(token_op.clone(), format!("Unexpected unary operator: {:?}", token_op));
                     return Err(ParseError);
                 }
             };
