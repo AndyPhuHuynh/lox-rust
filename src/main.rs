@@ -1,5 +1,6 @@
 mod error;
 mod scanner;
+mod syntax_tree;
 mod token;
 
 use std::env;
@@ -7,6 +8,7 @@ use std::fs;
 use std::io::{self, Write};
 
 use crate::scanner::Scanner;
+use crate::syntax_tree::expressions::{BinaryOp, Expr, Literal, UnaryOp};
 
 fn run(source: &str) {
     let mut scanner = Scanner::new(source);
@@ -36,6 +38,19 @@ fn run_prompt() -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
+    let expr = Expr::binary(
+        Expr::unary(
+            UnaryOp::Negation,
+            Expr::literal_num(123f64)
+        ),
+        BinaryOp::Mul,
+        Expr::grouping(
+            Expr::literal_num(45.67)
+        )
+    );
+
+    println!("{}", expr.print());
+
     let args: Vec<String> = env::args().skip(1).collect();
     if args.len() > 1 {
         eprintln!("Usage: rlox [script]")
