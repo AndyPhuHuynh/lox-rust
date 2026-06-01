@@ -1,3 +1,6 @@
+use std::fmt::{Display, Formatter};
+
+#[derive(Debug, Clone)]
 pub enum Expr {
     Literal(Literal),
     Unary(UnaryExpr),
@@ -14,23 +17,19 @@ impl Expr {
         Expr::Literal(Literal::String(str.to_owned()))
     }
 
-    pub fn literal_true() -> Expr {
-        Expr::Literal(Literal::True)
-    }
-
-    pub fn literal_false() -> Expr {
-        Expr::Literal(Literal::False)
+    pub fn literal_bool(bool: bool) -> Expr {
+        Expr::Literal(Literal::Bool(bool))
     }
 
     pub fn literal_nil() -> Expr {
         Expr::Literal(Literal::Nil)
     }
 
-    pub fn unary(operator: UnaryOp, expr: Expr) -> Expr {
+    pub fn unary(operator: UnaryOpToken, expr: Expr) -> Expr {
         Expr::Unary(UnaryExpr::new(operator, expr))
     }
 
-    pub fn binary(left: Expr, operator: BinaryOp, right: Expr) -> Expr {
+    pub fn binary(left: Expr, operator: BinaryOpToken, right: Expr) -> Expr {
         Expr::Binary(BinaryExpr::new(left, operator, right))
     }
 
@@ -39,69 +38,91 @@ impl Expr {
     }
 }
 
-impl Expr {
-    pub fn print(&self) -> String {
+impl Display for Expr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Expr::Literal(expr) => expr.print(),
-            Expr::Unary(expr) => expr.print(),
-            Expr::Binary(expr) => expr.print(),
-            Expr::Grouping(expr) => expr.print(),
+            Expr::Literal(expr) => write!(f, "{expr}"),
+            Expr::Unary(expr) => write!(f, "{expr}"),
+            Expr::Binary(expr) => write!(f, "{expr}"),
+            Expr::Grouping(expr) => write!(f, "{expr}"),
         }
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum Literal {
     Number(f64),
     String(String),
-    True,
-    False,
+    Bool(bool),
     Nil,
 }
 
-impl Literal {
-    pub fn print(&self) -> String {
+impl Display for Literal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Literal::Number(num) => num.to_string(),
-            Literal::String(str) => str.clone(),
-            Literal::True => "true".to_string(),
-            Literal::False => "false".to_string(),
-            Literal::Nil => "nil".to_string(),
+            Literal::Number(num) => write!(f, "{num}"),
+            Literal::String(str) => write!(f, "{str}"),
+            Literal::Bool(bool) => write!(f, "{bool}"),
+            Literal::Nil => write!(f, "nil"),
         }
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum UnaryOp {
     LogicalNot,
     Negation,
 }
 
-impl UnaryOp {
-    pub fn print(&self) -> String {
+impl Display for UnaryOp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
-            UnaryOp::LogicalNot => "!".to_string(),
-            UnaryOp::Negation => "-".to_string(),
+            UnaryOp::LogicalNot => write!(f, "!"),
+            UnaryOp::Negation => write!(f, "-"),
         }
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct UnaryOpToken {
+    pub operator: UnaryOp,
+    pub line: usize,
+}
+
+impl UnaryOpToken {
+    pub fn new(operator: UnaryOp, line: usize) -> UnaryOpToken {
+        UnaryOpToken { operator, line }
+    }
+}
+
+impl Display for UnaryOpToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.operator.fmt(f)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct UnaryExpr {
-    operator: UnaryOp,
-    expr: Box<Expr>,
+    pub op_token: UnaryOpToken,
+    pub expr: Box<Expr>,
 }
 
 impl UnaryExpr {
-    pub fn new(operator: UnaryOp, expr: Expr) -> Self {
+    pub fn new(operator: UnaryOpToken, expr: Expr) -> Self {
         Self {
-            operator,
+            op_token: operator,
             expr: Box::new(expr),
         }
     }
+}
 
-    pub fn print(&self) -> String {
-        format!("({} {})", self.operator.print(), self.expr.print())
+impl Display for UnaryExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({} {})", self.op_token, self.expr)
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum BinaryOp {
     Add,
     Sub,
@@ -115,50 +136,67 @@ pub enum BinaryOp {
     GreaterThanEqual,
 }
 
-impl BinaryOp {
-    pub fn print(&self) -> String {
+impl Display for BinaryOp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
-            BinaryOp::Add => "+".to_string(),
-            BinaryOp::Sub => "-".to_string(),
-            BinaryOp::Mul => "*".to_string(),
-            BinaryOp::Div => "/".to_string(),
-            BinaryOp::Equal => "==".to_string(),
-            BinaryOp::NotEqual => "!=".to_string(),
-            BinaryOp::LessThan => "<".to_string(),
-            BinaryOp::LessThanEqual => "<=".to_string(),
-            BinaryOp::GreaterThan => ">".to_string(),
-            BinaryOp::GreaterThanEqual => ">=".to_string(),
+            BinaryOp::Add => write!(f, "+"),
+            BinaryOp::Sub => write!(f, "-"),
+            BinaryOp::Mul => write!(f, "*"),
+            BinaryOp::Div => write!(f, "/"),
+            BinaryOp::Equal => write!(f, "=="),
+            BinaryOp::NotEqual => write!(f, "!="),
+            BinaryOp::LessThan => write!(f, "<"),
+            BinaryOp::LessThanEqual => write!(f, "<="),
+            BinaryOp::GreaterThan => write!(f, ">"),
+            BinaryOp::GreaterThanEqual => write!(f, ">="),
         }
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct BinaryOpToken {
+    pub operator: BinaryOp,
+    pub line: usize,
+}
+
+impl BinaryOpToken {
+    pub fn new(operator: BinaryOp, line: usize) -> BinaryOpToken {
+        BinaryOpToken { operator, line }
+    }
+}
+
+impl Display for BinaryOpToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.operator.fmt(f)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct BinaryExpr {
-    left: Box<Expr>,
-    operator: BinaryOp,
-    right: Box<Expr>,
+    pub left: Box<Expr>,
+    pub op_token: BinaryOpToken,
+    pub right: Box<Expr>,
 }
 
 impl BinaryExpr {
-    pub fn new(left: Expr, operator: BinaryOp, right: Expr) -> Self {
+    pub fn new(left: Expr, operator: BinaryOpToken, right: Expr) -> Self {
         Self {
             left: Box::new(left),
-            operator,
+            op_token: operator,
             right: Box::new(right),
         }
     }
+}
 
-    pub fn print(&self) -> String {
-        format!(
-            "({} {} {})",
-            self.operator.print(),
-            self.left.print(),
-            self.right.print()
-        )
+impl Display for BinaryExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({} {} {})", self.op_token, self.left, self.right,)
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct GroupingExpr {
-    expression: Box<Expr>,
+    pub expression: Box<Expr>,
 }
 
 impl GroupingExpr {
@@ -167,8 +205,10 @@ impl GroupingExpr {
             expression: Box::new(expression),
         }
     }
+}
 
-    pub fn print(&self) -> String {
-        format!("(group {})", self.expression.print())
+impl Display for GroupingExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(group {})", self.expression)
     }
 }

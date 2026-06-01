@@ -1,5 +1,5 @@
 use crate::error::error_token;
-use crate::syntax_tree::expressions::{BinaryOp, Expr, UnaryOp};
+use crate::syntax_tree::expressions::{BinaryOp, BinaryOpToken, Expr, UnaryOp, UnaryOpToken};
 use crate::token::{Token, TokenType};
 
 #[derive(Debug)]
@@ -16,6 +16,9 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Expr, ParseError> {
+        if self.tokens.is_empty() || self.tokens[0].r#type == TokenType::Eof {
+            return Err(ParseError);
+        }
         self.expression()
     }
 }
@@ -109,11 +112,14 @@ impl Parser {
                 TokenType::BangEqual => BinaryOp::NotEqual,
                 TokenType::EqualEqual => BinaryOp::Equal,
                 _ => {
-                    error_token(token_op.clone(), format!("Unexpected equality operator: {:?}", token_op));
+                    error_token(
+                        token_op.clone(),
+                        format!("Unexpected equality operator: {:?}", token_op),
+                    );
                     return Err(ParseError);
                 }
             };
-            expr = Expr::binary(expr, binary_op, right);
+            expr = Expr::binary(expr, BinaryOpToken::new(binary_op, token_op.line), right);
         }
 
         Ok(expr)
@@ -137,11 +143,14 @@ impl Parser {
                 TokenType::Less => BinaryOp::LessThan,
                 TokenType::LessEqual => BinaryOp::LessThanEqual,
                 _ => {
-                    error_token(token_op.clone(), format!("Unexpected comparison operator: {:?}", token_op));
+                    error_token(
+                        token_op.clone(),
+                        format!("Unexpected comparison operator: {:?}", token_op),
+                    );
                     return Err(ParseError);
                 }
             };
-            expr = Expr::binary(expr, binary_op, right);
+            expr = Expr::binary(expr, BinaryOpToken::new(binary_op, token_op.line), right);
         }
 
         Ok(expr)
@@ -158,11 +167,14 @@ impl Parser {
                 TokenType::Plus => BinaryOp::Add,
                 TokenType::Minus => BinaryOp::Sub,
                 _ => {
-                    error_token(token_op.clone(), format!("Unexpected term operator: {:?}", token_op));
+                    error_token(
+                        token_op.clone(),
+                        format!("Unexpected term operator: {:?}", token_op),
+                    );
                     return Err(ParseError);
                 }
             };
-            expr = Expr::binary(expr, binary_op, right);
+            expr = Expr::binary(expr, BinaryOpToken::new(binary_op, token_op.line), right);
         }
 
         Ok(expr)
@@ -179,11 +191,14 @@ impl Parser {
                 TokenType::Star => BinaryOp::Mul,
                 TokenType::Slash => BinaryOp::Div,
                 _ => {
-                    error_token(token_op.clone(), format!("Unexpected factor operator: {:?}", token_op));
+                    error_token(
+                        token_op.clone(),
+                        format!("Unexpected factor operator: {:?}", token_op),
+                    );
                     return Err(ParseError);
                 }
             };
-            expr = Expr::binary(expr, binary_op, right);
+            expr = Expr::binary(expr, BinaryOpToken::new(binary_op, token_op.line), right);
         }
 
         Ok(expr)
@@ -198,11 +213,17 @@ impl Parser {
                 TokenType::Bang => UnaryOp::LogicalNot,
                 TokenType::Minus => UnaryOp::Negation,
                 _ => {
-                    error_token(token_op.clone(), format!("Unexpected unary operator: {:?}", token_op));
+                    error_token(
+                        token_op.clone(),
+                        format!("Unexpected unary operator: {:?}", token_op),
+                    );
                     return Err(ParseError);
                 }
             };
-            return Ok(Expr::unary(unary_op, right));
+            return Ok(Expr::unary(
+                UnaryOpToken::new(unary_op, token_op.line),
+                right,
+            ));
         }
 
         self.primary()
@@ -211,8 +232,8 @@ impl Parser {
     fn primary(&mut self) -> Result<Expr, ParseError> {
         let token = self.advance();
         match token.r#type {
-            TokenType::False => Ok(Expr::literal_false()),
-            TokenType::True => Ok(Expr::literal_true()),
+            TokenType::False => Ok(Expr::literal_bool(false)),
+            TokenType::True => Ok(Expr::literal_bool(true)),
             TokenType::Nil => Ok(Expr::literal_nil()),
             TokenType::Number(num) => Ok(Expr::literal_num(num)),
             TokenType::String(str) => Ok(Expr::literal_str(str.as_str())),

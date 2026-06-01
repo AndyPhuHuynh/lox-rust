@@ -13,7 +13,7 @@ pub fn error_token(token: Token, message: impl AsRef<str>) {
         );
     } else {
         eprintln!(
-            "[Error at line {line}]: [{lexeme}] {msg}",
+            "[Error at line {line}] with token [{lexeme}]: {msg}",
             line = token.line,
             lexeme = token.lexeme,
             msg = message.as_ref(),

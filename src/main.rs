@@ -1,5 +1,7 @@
 mod error;
+mod interpreter;
 mod parser;
+mod runtime;
 mod scanner;
 mod syntax_tree;
 mod token;
@@ -17,7 +19,7 @@ fn run(source: &str) {
     let mut parser = Parser::new(tokens.clone());
     match parser.parse() {
         Ok(expr) => {
-            print!("{}", expr.print());
+            interpreter::interpret(expr);
         }
         Err(_) => {
             println!("Unable to parse. Encountered parse error");
