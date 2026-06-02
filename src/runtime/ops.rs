@@ -8,7 +8,7 @@ impl RuntimeValue {
         RuntimeValue::Bool(!self.is_truthy())
     }
 
-    pub fn negation(self) -> RuntimeResult {
+    pub fn negation(self) -> RuntimeResult<RuntimeValue> {
         match self {
             RuntimeValue::Number(num) => Ok(RuntimeValue::Number(-num)),
             _ => Err(RuntimeError::with_message(
@@ -41,7 +41,7 @@ fn check_both_strings<'a>(
 
 // Binary ops
 impl RuntimeValue {
-    pub fn add(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn add(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             Ok(RuntimeValue::Number(left_num + right_num))
         } else if let Some((left_str, right_str)) = check_both_strings(&self, &rhs) {
@@ -53,7 +53,7 @@ impl RuntimeValue {
         }
     }
 
-    pub fn sub(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn sub(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num - right_num));
         }
@@ -62,7 +62,7 @@ impl RuntimeValue {
         ))
     }
 
-    pub fn mul(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn mul(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num * right_num));
         }
@@ -71,7 +71,7 @@ impl RuntimeValue {
         ))
     }
 
-    pub fn div(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn div(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num / right_num));
         }
@@ -80,7 +80,7 @@ impl RuntimeValue {
         ))
     }
 
-    pub fn greater_than(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn greater_than(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num > right_num));
         }
@@ -89,7 +89,7 @@ impl RuntimeValue {
         ))
     }
 
-    pub fn greater_than_or_equal(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn greater_than_or_equal(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num >= right_num));
         }
@@ -97,7 +97,7 @@ impl RuntimeValue {
             "Greater than or equal operands must both be numbers",
         ))
     }
-    pub fn less_than(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn less_than(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num < right_num));
         }
@@ -106,7 +106,7 @@ impl RuntimeValue {
         ))
     }
 
-    pub fn less_than_or_equal(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn less_than_or_equal(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num <= right_num));
         }
@@ -115,11 +115,11 @@ impl RuntimeValue {
         ))
     }
 
-    pub fn not_equal(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn not_equal(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         Ok(RuntimeValue::Bool(self != rhs))
     }
 
-    pub fn equal(self, rhs: RuntimeValue) -> RuntimeResult {
+    pub fn equal(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         Ok(RuntimeValue::Bool(self == rhs))
     }
 }

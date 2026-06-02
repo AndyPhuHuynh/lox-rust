@@ -6,9 +6,8 @@ mod scanner;
 mod syntax_tree;
 mod token;
 
-use crate::interpreter::interpret::Interpret;
+use crate::interpreter::statement::Execute;
 use crate::parser::Parser;
-use crate::runtime::error::RuntimeError;
 use crate::scanner::Scanner;
 
 use std::env;
@@ -21,8 +20,8 @@ fn run(source: &str, exit_on_error: bool) {
     let tokens = scanner.scan_tokens();
 
     let mut parser = Parser::new(tokens.clone());
-    let expr = match parser.parse() {
-        Ok(expr) => expr,
+    let statements = match parser.parse() {
+        Ok(stmt) => stmt,
         Err(_) => {
             println!("Parse error");
             if exit_on_error {
@@ -33,25 +32,26 @@ fn run(source: &str, exit_on_error: bool) {
         }
     };
 
-    let result = match expr.interpret() {
-        Ok(result) => result,
-        Err(err) => {
-            match err.line {
-                Some(line) => {
-                    println!("Runtime error at line {}, {}", line, err.message);
+    for stmt in statements {
+        match stmt.execute() {
+            Ok(_) => {},
+            Err(err) => {
+                match err.line {
+                    Some(line) => {
+                        println!("Runtime error at line {}, {}", line, err.message);
+                    }
+                    None => {
+                        println!("Runtime error: {}", err.message);
+                    }
+                };
+                if exit_on_error {
+                    process::exit(70);
+                } else {
+                    return;
                 }
-                None => {
-                    println!("Runtime error: {}", err.message);
-                }
-            };
-            if exit_on_error {
-                process::exit(70);
-            } else {
-                return;
             }
         }
-    };
-    println!("{}", result);
+    }
 }
 
 fn run_file(path: &str) -> io::Result<()> {

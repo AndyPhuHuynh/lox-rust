@@ -1,26 +1,26 @@
 use crate::runtime::value::RuntimeValue;
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
-use crate::syntax_tree::expressions::{
+use crate::syntax_tree::expression::{
     BinaryExpr, BinaryOp, Expr, GroupingExpr, Literal, UnaryExpr, UnaryOp,
 };
 
-pub trait Interpret {
-    fn interpret(&self) -> RuntimeResult;
+pub trait Evaluate {
+    fn evaluate(&self) -> RuntimeResult<RuntimeValue>;
 }
 
-impl Interpret for Expr {
-    fn interpret(&self) -> RuntimeResult {
+impl Evaluate for Expr {
+    fn evaluate(&self) -> RuntimeResult<RuntimeValue> {
         match self {
-            Expr::Literal(expr) => expr.interpret(),
-            Expr::Unary(expr) => expr.interpret(),
-            Expr::Binary(expr) => expr.interpret(),
-            Expr::Grouping(expr) => expr.interpret(),
+            Expr::Literal(expr) => expr.evaluate(),
+            Expr::Unary(expr) => expr.evaluate(),
+            Expr::Binary(expr) => expr.evaluate(),
+            Expr::Grouping(expr) => expr.evaluate(),
         }
     }
 }
 
-impl Interpret for Literal {
-    fn interpret(&self) -> RuntimeResult {
+impl Evaluate for Literal {
+    fn evaluate(&self) -> RuntimeResult<RuntimeValue> {
         match &self {
             Literal::Number(num) => Ok(RuntimeValue::Number(*num)),
             Literal::String(str) => Ok(RuntimeValue::String(str.clone())),
@@ -30,9 +30,9 @@ impl Interpret for Literal {
     }
 }
 
-impl Interpret for UnaryExpr {
-    fn interpret(&self) -> RuntimeResult {
-        let right = self.expr.interpret()?;
+impl Evaluate for UnaryExpr {
+    fn evaluate(&self) -> RuntimeResult<RuntimeValue> {
+        let right = self.expr.evaluate()?;
 
         match self.op_token.operator {
             UnaryOp::LogicalNot => Ok(right.logical_not()),
@@ -41,10 +41,10 @@ impl Interpret for UnaryExpr {
     }
 }
 
-impl Interpret for BinaryExpr {
-    fn interpret(&self) -> RuntimeResult {
-        let left = self.left.interpret()?;
-        let right = self.right.interpret()?;
+impl Evaluate for BinaryExpr {
+    fn evaluate(&self) -> RuntimeResult<RuntimeValue> {
+        let left = self.left.evaluate()?;
+        let right = self.right.evaluate()?;
 
         match self.op_token.operator {
             BinaryOp::Add => left.add(right),
@@ -62,8 +62,8 @@ impl Interpret for BinaryExpr {
     }
 }
 
-impl Interpret for GroupingExpr {
-    fn interpret(&self) -> RuntimeResult {
-        self.expression.interpret()
+impl Evaluate for GroupingExpr {
+    fn evaluate(&self) -> RuntimeResult<RuntimeValue> {
+        self.expression.evaluate()
     }
 }
