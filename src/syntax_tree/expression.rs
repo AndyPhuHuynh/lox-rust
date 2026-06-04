@@ -6,6 +6,8 @@ pub enum Expr {
     Unary(UnaryExpr),
     Binary(BinaryExpr),
     Grouping(GroupingExpr),
+    Variable(Variable),
+    Assignment(Assignment),
 }
 
 impl Expr {
@@ -36,6 +38,14 @@ impl Expr {
     pub fn grouping(expression: Expr) -> Expr {
         Expr::Grouping(GroupingExpr::new(expression))
     }
+
+    pub fn variable(name: String) -> Expr {
+        Expr::Variable(Variable::new(name))
+    }
+
+    pub fn assignment(target: AssignmentTarget, expr: Expr) -> Expr {
+        Expr::Assignment(Assignment::new(target, expr))
+    }
 }
 
 impl Display for Expr {
@@ -45,6 +55,8 @@ impl Display for Expr {
             Expr::Unary(expr) => write!(f, "{expr}"),
             Expr::Binary(expr) => write!(f, "{expr}"),
             Expr::Grouping(expr) => write!(f, "{expr}"),
+            Expr::Variable(expr) => write!(f, "{expr}"),
+            Expr::Assignment(expr) => write!(f, "{expr}"),
         }
     }
 }
@@ -210,5 +222,74 @@ impl GroupingExpr {
 impl Display for GroupingExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "(group {})", self.expression)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Variable {
+    pub name: String,
+}
+
+impl Variable {
+    pub fn new(name: String) -> Self {
+        Self { name }
+    }
+}
+
+impl Display for Variable {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(variable {})", self.name)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum AssignmentTargetType {
+    Variable(String),
+}
+
+impl Display for AssignmentTargetType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AssignmentTargetType::Variable(name) => write!(f, "{}", name),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AssignmentTarget {
+    pub r#type: AssignmentTargetType,
+    pub line: usize,
+}
+
+impl AssignmentTarget {
+    pub fn new(r#type: AssignmentTargetType, line: usize) -> Self {
+        Self { r#type, line }
+    }
+}
+
+impl Display for AssignmentTarget {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.r#type)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Assignment {
+    pub target: AssignmentTarget,
+    pub value: Box<Expr>,
+}
+
+impl Assignment {
+    pub fn new(target: AssignmentTarget, value: Expr) -> Self {
+        Self {
+            target,
+            value: Box::new(value),
+        }
+    }
+}
+
+impl Display for Assignment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(assign {}, {})", self.target, self.value)
     }
 }

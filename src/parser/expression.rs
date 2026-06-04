@@ -1,17 +1,42 @@
 use crate::error::error_token;
 use crate::parser::{ParseError, ParseResult, Parser};
-use crate::syntax_tree::expression::{BinaryOp, BinaryOpToken, Expr, UnaryOp, UnaryOpToken};
-use crate::token::TokenType;
+use crate::syntax_tree::expression::{
+    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, UnaryOp, UnaryOpToken,
+};
+use crate::token::{TokenKind, TokenType};
 
 impl Parser {
     pub(in crate::parser) fn expression(&mut self) -> ParseResult<Expr> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> ParseResult<Expr> {
+        let expr = self.equality()?;
+
+        if self.match_token_kind(&[TokenKind::Equal]) {
+            let equal = self.previous();
+            let value = self.assignment()?;
+
+            match expr {
+                Expr::Variable(var) => {
+                    return Ok(Expr::assignment(
+                        AssignmentTarget::new(AssignmentTargetType::Variable(var.name), equal.line),
+                        value,
+                    ));
+                }
+                _ => {
+                    error_token(equal, "Invalid assignment target");
+                }
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> ParseResult<Expr> {
         let mut expr = self.comparison()?;
 
-        while self.match_token_type(&[TokenType::BangEqual, TokenType::EqualEqual]) {
+        while self.match_token_kind(&[TokenKind::BangEqual, TokenKind::EqualEqual]) {
             let token_op = self.previous();
             let right = self.comparison()?;
 
@@ -35,11 +60,11 @@ impl Parser {
     fn comparison(&mut self) -> ParseResult<Expr> {
         let mut expr = self.term()?;
 
-        while self.match_token_type(&[
-            TokenType::Greater,
-            TokenType::GreaterEqual,
-            TokenType::Less,
-            TokenType::LessEqual,
+        while self.match_token_kind(&[
+            TokenKind::Greater,
+            TokenKind::GreaterEqual,
+            TokenKind::Less,
+            TokenKind::LessEqual,
         ]) {
             let token_op = self.previous();
             let right = self.term()?;
@@ -66,7 +91,7 @@ impl Parser {
     fn term(&mut self) -> ParseResult<Expr> {
         let mut expr = self.factor()?;
 
-        while self.match_token_type(&[TokenType::Plus, TokenType::Minus]) {
+        while self.match_token_kind(&[TokenKind::Plus, TokenKind::Minus]) {
             let token_op = self.previous();
             let right = self.factor()?;
 
@@ -90,7 +115,7 @@ impl Parser {
     fn factor(&mut self) -> ParseResult<Expr> {
         let mut expr = self.unary()?;
 
-        while self.match_token_type(&[TokenType::Star, TokenType::Slash]) {
+        while self.match_token_kind(&[TokenKind::Star, TokenKind::Slash]) {
             let token_op = self.previous();
             let right = self.unary()?;
 
@@ -112,7 +137,7 @@ impl Parser {
     }
 
     fn unary(&mut self) -> ParseResult<Expr> {
-        if self.match_token_type(&[TokenType::Bang, TokenType::Minus]) {
+        if self.match_token_kind(&[TokenKind::Bang, TokenKind::Minus]) {
             let token_op = self.previous();
             let right = self.unary()?;
 
@@ -146,9 +171,10 @@ impl Parser {
             TokenType::String(str) => Ok(Expr::literal_str(str.as_str())),
             TokenType::LeftParen => {
                 let expr = self.expression()?;
-                self.consume(TokenType::RightParen, "Expect ')' after expression.")?;
+                self.consume(TokenKind::RightParen, "Expect ')' after expression.")?;
                 Ok(Expr::grouping(expr))
             }
+            TokenType::Identifier(name) => Ok(Expr::variable(name)),
             _ => {
                 error_token(token, "Expect expression.");
                 Err(ParseError)

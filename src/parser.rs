@@ -23,7 +23,7 @@ impl Parser {
     pub fn parse(&mut self) -> Result<Vec<Stmt>, ParseError> {
         let mut result: Vec<Stmt> = Vec::new();
         while !self.is_at_end() {
-            result.push(self.statement()?);
+            result.push(self.declaration()?);
         }
         Ok(result)
     }

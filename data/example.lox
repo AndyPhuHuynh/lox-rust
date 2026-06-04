@@ -1,3 +1,17 @@
 print 1 + 2;
 print 10 * 10;
 print 10 - 2;
+print true;
+print false;
+print "hello world!";
+print nil;
+
+
+var a = 10 + 5;
+print a;
+
+var a = 1010;
+print a;
+
+var b;
+print b;

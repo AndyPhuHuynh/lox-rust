@@ -1,20 +1,20 @@
 use crate::error::error_token;
 use crate::parser::{ParseError, Parser};
-use crate::token::{Token, TokenType};
+use crate::token::{Token, TokenKind, TokenType};
 
 impl Parser {
     pub(in crate::parser) fn is_at_end(&self) -> bool {
         self.peek().r#type == TokenType::Eof
     }
 
-    pub(in crate::parser) fn check(&self, token_type: &TokenType) -> bool {
+    pub(in crate::parser) fn check(&self, token_kind: &TokenKind) -> bool {
         if self.is_at_end() {
             return false;
         }
-        self.peek().r#type == *token_type
+        self.peek().r#type.kind() == *token_kind
     }
 
-    pub(in crate::parser) fn match_token_type(&mut self, types: &[TokenType]) -> bool {
+    pub(in crate::parser) fn match_token_kind(&mut self, types: &[TokenKind]) -> bool {
         for token in types {
             if self.check(token) {
                 self.advance();
@@ -42,10 +42,10 @@ impl Parser {
 
     pub(in crate::parser) fn consume(
         &mut self,
-        token_type: TokenType,
+        token_kind: TokenKind,
         message: &str,
     ) -> Result<Token, ParseError> {
-        if self.check(&token_type) {
+        if self.check(&token_kind) {
             return Ok(self.advance());
         }
         error_token(self.peek(), message);

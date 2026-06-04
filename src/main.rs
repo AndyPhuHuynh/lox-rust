@@ -1,3 +1,4 @@
+mod environment;
 mod error;
 mod interpreter;
 mod parser;
@@ -6,17 +7,17 @@ mod scanner;
 mod syntax_tree;
 mod token;
 
-use crate::interpreter::statement::Execute;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 
+use crate::interpreter::Interpreter;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
 
-fn run(source: &str, exit_on_error: bool) {
-    let mut scanner = Scanner::new(source);
+fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
+    let mut scanner = Scanner::new(&source);
     let tokens = scanner.scan_tokens();
 
     let mut parser = Parser::new(tokens.clone());
@@ -32,23 +33,14 @@ fn run(source: &str, exit_on_error: bool) {
         }
     };
 
-    for stmt in statements {
-        match stmt.execute() {
-            Ok(_) => {},
-            Err(err) => {
-                match err.line {
-                    Some(line) => {
-                        println!("Runtime error at line {}, {}", line, err.message);
-                    }
-                    None => {
-                        println!("Runtime error: {}", err.message);
-                    }
-                };
-                if exit_on_error {
-                    process::exit(70);
-                } else {
-                    return;
-                }
+    match interpreter.interpret(&statements) {
+        Ok(_) => {}
+        Err(err) => {
+            println!("{err}");
+            if exit_on_error {
+                process::exit(70);
+            } else {
+                return;
             }
         }
     }
@@ -56,11 +48,16 @@ fn run(source: &str, exit_on_error: bool) {
 
 fn run_file(path: &str) -> io::Result<()> {
     let contents = fs::read_to_string(path)?;
-    run(&contents, true);
+
+    let mut interpreter = Interpreter::new();
+    run(&mut interpreter, &contents, true);
+
     Ok(())
 }
 
 fn run_prompt() -> io::Result<()> {
+    let mut interpreter = Interpreter::new();
+
     loop {
         let mut input = String::new();
         print!("> ");
@@ -71,7 +68,7 @@ fn run_prompt() -> io::Result<()> {
             return Ok(());
         }
 
-        run(&input, false);
+        run(&mut interpreter, &input, false);
     }
 }
 
