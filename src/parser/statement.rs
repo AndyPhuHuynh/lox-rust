@@ -1,7 +1,7 @@
 use crate::parser::{ParseResult, Parser};
 use crate::syntax_tree::expression::Expr;
 use crate::syntax_tree::statement::Stmt;
-use crate::token::{TokenKind, TokenType};
+use crate::token::TokenKind;
 
 impl Parser {
     pub(in crate::parser) fn declaration(&mut self) -> ParseResult<Stmt> {

@@ -1,19 +1,19 @@
-use crate::environment::Environment;
+pub mod expression;
+pub mod statement;
+
+use crate::environment::EnvRef;
 use crate::interpreter::statement::Execute;
 use crate::runtime::RuntimeResult;
 use crate::syntax_tree::statement::Stmt;
 
-pub mod expression;
-pub mod statement;
-
 pub struct Interpreter {
-    env: Environment,
+    env: EnvRef
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            env: Environment::new(),
+            env: EnvRef::with_enclosing(None)
         }
     }
 

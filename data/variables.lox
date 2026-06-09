@@ -1,6 +1,6 @@
 var b = 2;
 print b;
-var a = b = 3;
+var a = b = "hello world!";
 
 print a;
 print b;

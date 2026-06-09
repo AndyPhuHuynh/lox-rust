@@ -1,4 +1,4 @@
-use crate::environment::Environment;
+use crate::environment::EnvRef;
 use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
 use crate::runtime::value::RuntimeValue;
@@ -6,11 +6,11 @@ use crate::syntax_tree::expression::Expr;
 use crate::syntax_tree::statement::{Print, Stmt, Var};
 
 pub trait Execute {
-    fn execute(&self, env: &mut Environment) -> RuntimeResult<()>;
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()>;
 }
 
 impl Execute for Stmt {
-    fn execute(&self, env: &mut Environment) -> RuntimeResult<()> {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         match self {
             Stmt::Expr(stmt) => stmt.execute(env),
             Stmt::Print(stmt) => stmt.execute(env),
@@ -20,14 +20,14 @@ impl Execute for Stmt {
 }
 
 impl Execute for Expr {
-    fn execute(&self, env: &mut Environment) -> RuntimeResult<()> {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         self.evaluate(env)?;
         Ok(())
     }
 }
 
 impl Execute for Print {
-    fn execute(&self, env: &mut Environment) -> RuntimeResult<()> {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         let value = self.expr.evaluate(env)?;
         println!("{}", value);
         Ok(())
@@ -35,7 +35,7 @@ impl Execute for Print {
 }
 
 impl Execute for Var {
-    fn execute(&self, env: &mut Environment) -> RuntimeResult<()> {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         let mut value = RuntimeValue::Nil;
 
         if let Some(expr) = &self.initializer {
