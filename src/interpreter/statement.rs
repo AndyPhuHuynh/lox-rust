@@ -3,7 +3,7 @@ use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
 use crate::runtime::value::RuntimeValue;
 use crate::syntax_tree::expression::Expr;
-use crate::syntax_tree::statement::{Print, Stmt, Var};
+use crate::syntax_tree::statement::{Block, Print, Stmt, Var};
 
 pub trait Execute {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()>;
@@ -15,6 +15,7 @@ impl Execute for Stmt {
             Stmt::Expr(stmt) => stmt.execute(env),
             Stmt::Print(stmt) => stmt.execute(env),
             Stmt::Var(stmt) => stmt.execute(env),
+            Stmt::Block(stmt) => stmt.execute(env),
         }
     }
 }
@@ -43,6 +44,18 @@ impl Execute for Var {
         }
 
         env.define(self.name.clone(), value);
+        Ok(())
+    }
+}
+
+impl Execute for Block {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
+        let mut nested_env = EnvRef::with_enclosing(Some(env.clone()));
+
+        for stmt in &self.stmts {
+            stmt.execute(&mut nested_env)?;
+        }
+
         Ok(())
     }
 }

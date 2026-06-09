@@ -5,6 +5,7 @@ pub enum Stmt {
     Expr(Expr),
     Print(Print),
     Var(Var),
+    Block(Block),
 }
 
 impl Stmt {
@@ -18,6 +19,10 @@ impl Stmt {
 
     pub fn var(str: String, initializer: Option<Expr>) -> Self {
         Self::Var(Var::new(str, initializer))
+    }
+
+    pub fn block(stmts: Vec<Stmt>) -> Self {
+        Self::Block(Block::new(stmts))
     }
 }
 
@@ -41,5 +46,16 @@ pub struct Var {
 impl Var {
     pub fn new(name: String, initializer: Option<Expr>) -> Self {
         Self { name, initializer }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Block {
+    pub stmts: Vec<Stmt>,
+}
+
+impl Block {
+    pub fn new(stmts: Vec<Stmt>) -> Self {
+        Self { stmts }
     }
 }
