@@ -33,6 +33,9 @@ impl Parser {
     }
 
     fn statement(&mut self) -> ParseResult<Stmt> {
+        if self.match_token_kind(&[TokenKind::If]) {
+            return self.if_statement()
+        }
         if self.match_token_kind(&[TokenKind::Print]) {
             return self.print_statement();
         }
@@ -46,6 +49,20 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenKind::Semicolon, "Expect ';' after expression")?;
         Ok(Stmt::expr(expr))
+    }
+
+    fn if_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(TokenKind::LeftParen, "Expect '(' after 'if'")?;
+        let condition = self.expression()?;
+        self.consume(TokenKind::RightParen, "Expect ')' after 'if'")?;
+
+        let then_branch = self.statement()?;
+        let mut else_branch: Option<Stmt> = None;
+        if self.match_token_kind(&[TokenKind::Else]) {
+            else_branch = Some(self.statement()?);
+        }
+
+        Ok(Stmt::r#if(condition, then_branch, else_branch))
     }
 
     fn print_statement(&mut self) -> ParseResult<Stmt> {

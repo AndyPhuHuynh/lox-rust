@@ -1,0 +1,15 @@
+var a = 1 + 2 + 1;
+if (a == 3) {
+    print "a equals 3!";
+} else {
+    print "a is not three!";
+    a = 3;
+}
+
+if (a == 3) {
+    print "a now equals 3!!";
+} else {
+    print "whoops";
+}
+
+

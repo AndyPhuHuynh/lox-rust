@@ -3,7 +3,7 @@ use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
 use crate::runtime::value::RuntimeValue;
 use crate::syntax_tree::expression::Expr;
-use crate::syntax_tree::statement::{Block, Print, Stmt, Var};
+use crate::syntax_tree::statement::{Block, If, Print, Stmt, Var};
 
 pub trait Execute {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()>;
@@ -13,6 +13,7 @@ impl Execute for Stmt {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         match self {
             Stmt::Expr(stmt) => stmt.execute(env),
+            Stmt::If(stmt) => stmt.execute(env),
             Stmt::Print(stmt) => stmt.execute(env),
             Stmt::Var(stmt) => stmt.execute(env),
             Stmt::Block(stmt) => stmt.execute(env),
@@ -23,6 +24,17 @@ impl Execute for Stmt {
 impl Execute for Expr {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         self.evaluate(env)?;
+        Ok(())
+    }
+}
+
+impl Execute for If {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
+        if self.condition.evaluate(env)?.is_truthy() {
+            return self.then_branch.execute(env)
+        } else if let Some(else_branch) = &self.else_branch {
+            return else_branch.execute(env)
+        }
         Ok(())
     }
 }

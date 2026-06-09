@@ -77,7 +77,7 @@ impl Evaluate for Variable {
     fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         env.get(self.name.as_str())
             .ok_or(RuntimeError::with_message(
-                format!("Undefined variable: {}", self.name).as_str(),
+                format!("Undefined variable at line {}: {}", self.line, self.name).as_str(),
             ))
     }
 }

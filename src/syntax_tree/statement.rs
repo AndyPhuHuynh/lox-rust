@@ -3,6 +3,7 @@ use crate::syntax_tree::expression::Expr;
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Expr(Expr),
+    If(If),
     Print(Print),
     Var(Var),
     Block(Block),
@@ -11,6 +12,10 @@ pub enum Stmt {
 impl Stmt {
     pub fn expr(expr: Expr) -> Self {
         Self::Expr(expr)
+    }
+
+    pub fn r#if(cond: Expr, then: Stmt, else_: Option<Stmt>) -> Self {
+        Self::If(If::new(cond, then, else_))
     }
 
     pub fn print(expr: Expr) -> Self {
@@ -57,5 +62,22 @@ pub struct Block {
 impl Block {
     pub fn new(stmts: Vec<Stmt>) -> Self {
         Self { stmts }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct If {
+    pub condition: Expr,
+    pub then_branch: Box<Stmt>,
+    pub else_branch: Option<Box<Stmt>>,
+}
+
+impl If {
+    pub fn new(condition: Expr, then_branch: Stmt, else_branch: Option<Stmt>) -> Self {
+        Self {
+            condition,
+            then_branch: Box::new(then_branch),
+            else_branch: else_branch.map(Box::new),
+        }
     }
 }

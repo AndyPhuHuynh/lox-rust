@@ -39,8 +39,8 @@ impl Expr {
         Expr::Grouping(GroupingExpr::new(expression))
     }
 
-    pub fn variable(name: String) -> Expr {
-        Expr::Variable(Variable::new(name))
+    pub fn variable(name: String, line: usize) -> Expr {
+        Expr::Variable(Variable::new(name, line))
     }
 
     pub fn assignment(target: AssignmentTarget, expr: Expr) -> Expr {
@@ -228,11 +228,12 @@ impl Display for GroupingExpr {
 #[derive(Debug, Clone)]
 pub struct Variable {
     pub name: String,
+    pub line: usize,
 }
 
 impl Variable {
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn new(name: String, line: usize) -> Self {
+        Self { name, line }
     }
 }
 

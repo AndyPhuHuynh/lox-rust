@@ -174,7 +174,7 @@ impl Parser {
                 self.consume(TokenKind::RightParen, "Expect ')' after expression.")?;
                 Ok(Expr::grouping(expr))
             }
-            TokenType::Identifier(name) => Ok(Expr::variable(name)),
+            TokenType::Identifier(name) => Ok(Expr::variable(name, token.line)),
             _ => {
                 error_token(token, "Expect expression.");
                 Err(ParseError)
