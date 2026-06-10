@@ -3,9 +3,9 @@ pub mod error;
 pub mod ops;
 pub mod value;
 
-use crate::runtime::error::RuntimeError;
+use crate::runtime::error::RuntimeException;
 
-pub type RuntimeResult<OkValue> = Result<OkValue, RuntimeError>;
+pub type RuntimeResult<OkValue> = Result<OkValue, RuntimeException>;
 
 pub trait RuntimeResultExt {
     fn at_line(self, line: usize) -> Self;

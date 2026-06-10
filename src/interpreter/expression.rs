@@ -1,6 +1,6 @@
 use crate::environment::EnvRef;
 use crate::runtime::call::Callable;
-use crate::runtime::error::RuntimeError;
+use crate::runtime::error::RuntimeException;
 use crate::runtime::value::RuntimeValue;
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
 use crate::syntax_tree::expression::{
@@ -103,7 +103,7 @@ impl Evaluate for GroupingExpr {
 impl Evaluate for Variable {
     fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         env.get(self.name.as_str())
-            .ok_or(RuntimeError::with_message(
+            .ok_or(RuntimeException::with_message(
                 format!("Undefined variable at line {}: {}", self.line, self.name).as_str(),
             ))
     }
@@ -115,7 +115,7 @@ impl Evaluate for Assignment {
             AssignmentTargetType::Variable(name) => {
                 let rhs_value = self.value.evaluate(env)?;
                 if let None = env.assign(name.clone(), rhs_value.clone()) {
-                    return Err(RuntimeError::with_message(
+                    return Err(RuntimeException::with_message(
                         format!("Undefined variable at line {}: {}", self.target.line, name)
                             .as_str(),
                     ));

@@ -1,6 +1,6 @@
+use crate::syntax_tree::statement::Function;
 use std::fmt::Display;
 use std::rc::Rc;
-use crate::syntax_tree::statement::Function;
 
 #[derive(Debug, Clone)]
 pub enum RuntimeValue {

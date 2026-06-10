@@ -1,9 +1,10 @@
 use crate::environment::EnvRef;
 use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
+use crate::runtime::error::RuntimeException;
 use crate::runtime::value::RuntimeValue;
 use crate::syntax_tree::expression::Expr;
-use crate::syntax_tree::statement::{Block, Function, If, Print, Stmt, Var, While};
+use crate::syntax_tree::statement::{Block, Function, If, Print, Return, Stmt, Var, While};
 
 pub trait Execute {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()>;
@@ -16,6 +17,7 @@ impl Execute for Stmt {
             Stmt::Function(stmt) => stmt.execute(env),
             Stmt::If(stmt) => stmt.execute(env),
             Stmt::Print(stmt) => stmt.execute(env),
+            Stmt::Return(stmt) => stmt.execute(env),
             Stmt::While(stmt) => stmt.execute(env),
             Stmt::Var(stmt) => stmt.execute(env),
             Stmt::Block(stmt) => stmt.execute(env),
@@ -48,19 +50,31 @@ impl Execute for If {
     }
 }
 
+impl Execute for Print {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
+        let value = self.expr.evaluate(env)?;
+        println!("{}", value);
+        Ok(())
+    }
+}
+
+impl Execute for Return {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
+        match &self.expr {
+            None => Err(RuntimeException::return_value(RuntimeValue::Nil, self.line)),
+            Some(expr) => Err(RuntimeException::return_value(
+                expr.evaluate(env)?,
+                self.line,
+            )),
+        }
+    }
+}
+
 impl Execute for While {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         while self.condition.evaluate(env)?.is_truthy() {
             self.body.execute(env)?;
         }
-        Ok(())
-    }
-}
-
-impl Execute for Print {
-    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
-        let value = self.expr.evaluate(env)?;
-        println!("{}", value);
         Ok(())
     }
 }

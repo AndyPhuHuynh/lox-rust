@@ -1,6 +1,6 @@
+use crate::syntax_tree::expression::Expr;
 use std::fmt::Display;
 use std::rc::Rc;
-use crate::syntax_tree::expression::Expr;
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
@@ -8,6 +8,7 @@ pub enum Stmt {
     Function(Rc<Function>),
     If(If),
     Print(Print),
+    Return(Return),
     While(While),
     Var(Var),
     Block(Block),
@@ -18,11 +19,11 @@ impl Stmt {
         Self::Expr(expr)
     }
 
-    pub fn function(name: String, params: Vec<String>, body: Vec<Stmt>, line: usize) -> Self {
-        Stmt::Function(Rc::new(Function::new(name, params, body, line)))
+    pub fn function(name: String, params: Vec<String>, body: Vec<Stmt>) -> Self {
+        Stmt::Function(Rc::new(Function::new(name, params, body)))
     }
 
-    pub fn r#if(cond: Expr, then: Stmt, else_: Option<Stmt>) -> Self {
+    pub fn if_(cond: Expr, then: Stmt, else_: Option<Stmt>) -> Self {
         Self::If(If::new(cond, then, else_))
     }
 
@@ -30,7 +31,11 @@ impl Stmt {
         Self::Print(Print::new(expr))
     }
 
-    pub fn r#while(cond: Expr, body: Stmt) -> Self {
+    pub fn return_(expr: Option<Expr>, line: usize) -> Self {
+        Self::Return(Return::new(expr, line))
+    }
+
+    pub fn while_(cond: Expr, body: Stmt) -> Self {
         Self::While(While::new(cond, body))
     }
 
@@ -43,23 +48,16 @@ impl Stmt {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
     pub params: Vec<String>,
     pub body: Vec<Stmt>,
-    pub line: usize,
 }
 
 impl Function {
-    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, line: usize) -> Self {
-        Self {
-            name,
-            params,
-            body,
-            line
-        }
+    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>) -> Self {
+        Self { name, params, body }
     }
 }
 
@@ -98,14 +96,14 @@ impl Print {
 }
 
 #[derive(Debug, Clone)]
-pub struct Var {
-    pub name: String,
-    pub initializer: Option<Expr>,
+pub struct Return {
+    pub expr: Option<Expr>,
+    pub line: usize,
 }
 
-impl Var {
-    pub fn new(name: String, initializer: Option<Expr>) -> Self {
-        Self { name, initializer }
+impl Return {
+    pub fn new(expr: Option<Expr>, line: usize) -> Self {
+        Self { expr, line }
     }
 }
 
@@ -124,6 +122,17 @@ impl While {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Var {
+    pub name: String,
+    pub initializer: Option<Expr>,
+}
+
+impl Var {
+    pub fn new(name: String, initializer: Option<Expr>) -> Self {
+        Self { name, initializer }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Block {

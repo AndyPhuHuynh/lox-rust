@@ -1,7 +1,5 @@
-use crate::environment::EnvRef;
-use crate::error::error;
 use crate::runtime::RuntimeResult;
-use crate::runtime::error::RuntimeError;
+use crate::runtime::error::RuntimeException;
 use crate::runtime::value::RuntimeValue;
 
 // Unary ops
@@ -13,7 +11,7 @@ impl RuntimeValue {
     pub fn negation(self) -> RuntimeResult<RuntimeValue> {
         match self {
             RuntimeValue::Number(num) => Ok(RuntimeValue::Number(-num)),
-            _ => Err(RuntimeError::with_message(
+            _ => Err(RuntimeException::with_message(
                 "Negation operand must be a number",
             )),
         }
@@ -49,7 +47,7 @@ impl RuntimeValue {
         } else if let Some((left_str, right_str)) = check_both_strings(&self, &rhs) {
             Ok(RuntimeValue::String(left_str.to_string() + right_str))
         } else {
-            Err(RuntimeError::with_message(
+            Err(RuntimeException::with_message(
                 "Addition operands must either be both strings or both numbers",
             ))
         }
@@ -59,7 +57,7 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num - right_num));
         }
-        Err(RuntimeError::with_message(
+        Err(RuntimeException::with_message(
             "Subtraction operands must both be numbers",
         ))
     }
@@ -68,7 +66,7 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num * right_num));
         }
-        Err(RuntimeError::with_message(
+        Err(RuntimeException::with_message(
             "Multiplication operands must both be numbers",
         ))
     }
@@ -77,7 +75,7 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num / right_num));
         }
-        Err(RuntimeError::with_message(
+        Err(RuntimeException::with_message(
             "Division operands must both be numbers",
         ))
     }
@@ -86,7 +84,7 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num > right_num));
         }
-        Err(RuntimeError::with_message(
+        Err(RuntimeException::with_message(
             "Greater than operands must both be numbers",
         ))
     }
@@ -95,7 +93,7 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num >= right_num));
         }
-        Err(RuntimeError::with_message(
+        Err(RuntimeException::with_message(
             "Greater than or equal operands must both be numbers",
         ))
     }
@@ -103,7 +101,7 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num < right_num));
         }
-        Err(RuntimeError::with_message(
+        Err(RuntimeException::with_message(
             "Less than operands must both be numbers",
         ))
     }
@@ -112,7 +110,7 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num <= right_num));
         }
-        Err(RuntimeError::with_message(
+        Err(RuntimeException::with_message(
             "Less than or equal operands must both be numbers",
         ))
     }

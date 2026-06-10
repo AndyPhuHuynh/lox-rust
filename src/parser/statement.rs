@@ -7,10 +7,10 @@ use crate::token::TokenKind;
 impl Parser {
     pub(in crate::parser) fn declaration(&mut self) -> ParseResult<Stmt> {
         if self.match_token_kind(&[TokenKind::Fun]) {
-            return self.function_declaration("function")
+            return self.function_declaration("function");
         }
         if self.match_token_kind(&[TokenKind::Var]) {
-            return self.var_declaration()
+            return self.var_declaration();
         }
         match self.statement() {
             Ok(stmt) => Ok(stmt),
@@ -23,7 +23,10 @@ impl Parser {
 
     fn function_declaration(&mut self, kind: &str) -> ParseResult<Stmt> {
         let name = self.consume(TokenKind::Identifier, &format!("Expect {kind} name"))?;
-        self.consume(TokenKind::LeftParen, &format!("Expect '(' after {kind} name"))?;
+        self.consume(
+            TokenKind::LeftParen,
+            &format!("Expect '(' after {kind} name"),
+        )?;
 
         let mut params: Vec<String> = Vec::new();
         if !self.check(&TokenKind::RightParen) {
@@ -31,7 +34,10 @@ impl Parser {
                 if params.len() >= 255 {
                     error_token(self.peek(), "Cannot have more than 255 parameters");
                 }
-                params.push(self.consume(TokenKind::Identifier, "Expect parameter name")?.lexeme);
+                params.push(
+                    self.consume(TokenKind::Identifier, "Expect parameter name")?
+                        .lexeme,
+                );
                 if !self.match_token_kind(&[TokenKind::Comma]) {
                     break;
                 }
@@ -39,10 +45,13 @@ impl Parser {
         }
         self.consume(TokenKind::RightParen, "Expect ')' after parameters")?;
 
-        self.consume(TokenKind::LeftBrace, &format!("Expect '{{' before {kind} body"))?;
+        self.consume(
+            TokenKind::LeftBrace,
+            &format!("Expect '{{' before {kind} body"),
+        )?;
         let body = self.block()?;
 
-        Ok(Stmt::function(name.lexeme, params, body, name.line))
+        Ok(Stmt::function(name.lexeme, params, body))
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {
@@ -69,6 +78,9 @@ impl Parser {
         }
         if self.match_token_kind(&[TokenKind::Print]) {
             return self.print_statement();
+        }
+        if self.match_token_kind(&[TokenKind::Return]) {
+            return self.return_statement();
         }
         if self.match_token_kind(&[TokenKind::While]) {
             return self.while_statement();
@@ -116,7 +128,7 @@ impl Parser {
         }
 
         let condition = condition.unwrap_or_else(|| Expr::literal_bool(true));
-        body = Stmt::r#while(condition, body);
+        body = Stmt::while_(condition, body);
 
         if let Some(init) = init {
             body = Stmt::block(vec![init, body])
@@ -138,7 +150,7 @@ impl Parser {
             else_branch = Some(self.statement()?);
         }
 
-        Ok(Stmt::r#if(condition, then_branch, else_branch))
+        Ok(Stmt::if_(condition, then_branch, else_branch))
     }
 
     fn print_statement(&mut self) -> ParseResult<Stmt> {
@@ -147,12 +159,22 @@ impl Parser {
         Ok(Stmt::print(expr))
     }
 
+    fn return_statement(&mut self) -> ParseResult<Stmt> {
+        let line = self.previous().line;
+        let mut value: Option<Expr> = None;
+        if !self.check(&TokenKind::Semicolon) {
+            value = Some(self.expression()?);
+        }
+        self.consume(TokenKind::Semicolon, "Expect ';' after return value")?;
+        Ok(Stmt::return_(value, line))
+    }
+
     fn while_statement(&mut self) -> ParseResult<Stmt> {
         self.consume(TokenKind::LeftParen, "Expect '(' after 'while'")?;
         let condition = self.expression()?;
         self.consume(TokenKind::RightParen, "Expect ')' after 'while'")?;
         let body = self.statement()?;
-        Ok(Stmt::r#while(condition, body))
+        Ok(Stmt::while_(condition, body))
     }
 
     fn block(&mut self) -> ParseResult<Vec<Stmt>> {

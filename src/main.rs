@@ -11,10 +11,32 @@ use crate::parser::Parser;
 use crate::scanner::Scanner;
 
 use crate::interpreter::Interpreter;
+use crate::runtime::error::RuntimeException;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process;
+
+fn display_error(error: RuntimeException) -> String {
+    match error {
+        RuntimeException::RuntimeError { message, line } => {
+            if let Some(line) = line {
+                format!("Runtime error at line {}: {}", line, message)
+            } else {
+                format!("Runtime error: {}", message)
+            }
+        }
+        RuntimeException::Return {
+            value: _value,
+            line,
+        } => {
+            format!(
+                "Runtime error at line {}: return statement encountered outside of function or method",
+                line
+            )
+        }
+    }
+}
 
 fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
     let mut scanner = Scanner::new(&source);
@@ -36,7 +58,7 @@ fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
     match interpreter.interpret(&statements) {
         Ok(_) => {}
         Err(err) => {
-            println!("{err}");
+            println!("{}", display_error(err));
             if exit_on_error {
                 process::exit(70);
             } else {
