@@ -6,6 +6,7 @@ pub enum Expr {
     Unary(UnaryExpr),
     Binary(BinaryExpr),
     Logical(LogicalExpr),
+    Call(Call),
     Grouping(GroupingExpr),
     Variable(Variable),
     Assignment(Assignment),
@@ -44,6 +45,10 @@ impl Expr {
         Expr::Grouping(GroupingExpr::new(expression))
     }
 
+    pub fn call(callee: Expr, arguments: Vec<Expr>, line: usize) -> Expr {
+        Expr::Call(Call::new(callee, arguments, line))
+    }
+
     pub fn variable(name: String, line: usize) -> Expr {
         Expr::Variable(Variable::new(name, line))
     }
@@ -60,6 +65,7 @@ impl Display for Expr {
             Expr::Unary(expr) => write!(f, "{expr}"),
             Expr::Binary(expr) => write!(f, "{expr}"),
             Expr::Logical(expr) => write!(f, "{expr}"),
+            Expr::Call(expr) => write!(f, "{expr}"),
             Expr::Grouping(expr) => write!(f, "{expr}"),
             Expr::Variable(expr) => write!(f, "{expr}"),
             Expr::Assignment(expr) => write!(f, "{expr}"),
@@ -247,6 +253,33 @@ impl LogicalExpr {
 impl Display for LogicalExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "({} {} {})", self.op, self.left, self.right,)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Call {
+    pub callee: Box<Expr>,
+    pub args: Vec<Expr>,
+    pub line: usize,
+}
+
+impl Call {
+    pub fn new(callee: Expr, args: Vec<Expr>, line: usize) -> Self {
+        Self {
+            callee: Box::new(callee),
+            args,
+            line,
+        }
+    }
+}
+
+impl Display for Call {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(call {}", self.callee)?;
+        for arg in &self.args {
+            write!(f, " {}", arg)?;
+        }
+        write!(f, ")")
     }
 }
 

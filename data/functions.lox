@@ -1,0 +1,22 @@
+fun PrintFib(count) {
+    var a = 1;
+    var b = 1;
+    var iter = 0;
+
+    while (iter < count) {
+        print a;
+        var temp = b;
+        b = a + b;
+        a = temp;
+        iter = iter + 1;
+    }
+}
+
+fun AcceptCount(count) {
+    print "Count is:";
+    print count;
+    PrintFib(count);
+}
+
+var ret = AcceptCount(10);
+print ret;

@@ -1,3 +1,4 @@
+use crate::error::error_token;
 use crate::parser::{ParseResult, Parser};
 use crate::syntax_tree::expression::Expr;
 use crate::syntax_tree::statement::Stmt;
@@ -5,8 +6,11 @@ use crate::token::TokenKind;
 
 impl Parser {
     pub(in crate::parser) fn declaration(&mut self) -> ParseResult<Stmt> {
+        if self.match_token_kind(&[TokenKind::Fun]) {
+            return self.function_declaration("function")
+        }
         if self.match_token_kind(&[TokenKind::Var]) {
-            return self.var_declaration();
+            return self.var_declaration()
         }
         match self.statement() {
             Ok(stmt) => Ok(stmt),
@@ -15,6 +19,30 @@ impl Parser {
                 Err(error)
             }
         }
+    }
+
+    fn function_declaration(&mut self, kind: &str) -> ParseResult<Stmt> {
+        let name = self.consume(TokenKind::Identifier, &format!("Expect {kind} name"))?;
+        self.consume(TokenKind::LeftParen, &format!("Expect '(' after {kind} name"))?;
+
+        let mut params: Vec<String> = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                if params.len() >= 255 {
+                    error_token(self.peek(), "Cannot have more than 255 parameters");
+                }
+                params.push(self.consume(TokenKind::Identifier, "Expect parameter name")?.lexeme);
+                if !self.match_token_kind(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenKind::RightParen, "Expect ')' after parameters")?;
+
+        self.consume(TokenKind::LeftBrace, &format!("Expect '{{' before {kind} body"))?;
+        let body = self.block()?;
+
+        Ok(Stmt::function(name.lexeme, params, body, name.line))
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {
@@ -84,7 +112,7 @@ impl Parser {
 
         let mut body = self.statement()?;
         if let Some(increment) = increment {
-            body = Stmt::block(vec!(body, Stmt::Expr(increment)))
+            body = Stmt::block(vec![body, Stmt::Expr(increment)])
         }
 
         let condition = condition.unwrap_or_else(|| Expr::literal_bool(true));

@@ -1,12 +1,14 @@
 use std::fmt::Display;
+use std::rc::Rc;
+use crate::syntax_tree::statement::Function;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum RuntimeValue {
-    Object,
     Nil,
     Number(f64),
     String(String),
     Bool(bool),
+    Function(Rc<Function>),
 }
 
 impl RuntimeValue {
@@ -22,11 +24,24 @@ impl RuntimeValue {
 impl Display for RuntimeValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RuntimeValue::Object => todo!("Implement objects"),
             RuntimeValue::Nil => write!(f, "nil"),
             RuntimeValue::Number(num) => write!(f, "{}", num),
             RuntimeValue::String(str) => write!(f, "{}", str),
             RuntimeValue::Bool(bool) => write!(f, "{}", bool),
+            RuntimeValue::Function(function) => write!(f, "{}", function),
+        }
+    }
+}
+
+impl PartialEq for RuntimeValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (RuntimeValue::Nil, RuntimeValue::Nil) => true,
+            (RuntimeValue::Number(num1), RuntimeValue::Number(num2)) => num1 == num2,
+            (RuntimeValue::String(str1), RuntimeValue::String(str2)) => str1 == str2,
+            (RuntimeValue::Bool(bool1), RuntimeValue::Bool(bool2)) => bool1 == bool2,
+            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => Rc::ptr_eq(a, b),
+            _ => false,
         }
     }
 }

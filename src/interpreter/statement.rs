@@ -3,7 +3,7 @@ use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
 use crate::runtime::value::RuntimeValue;
 use crate::syntax_tree::expression::Expr;
-use crate::syntax_tree::statement::{Block, If, Print, Stmt, Var, While};
+use crate::syntax_tree::statement::{Block, Function, If, Print, Stmt, Var, While};
 
 pub trait Execute {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()>;
@@ -13,6 +13,7 @@ impl Execute for Stmt {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         match self {
             Stmt::Expr(stmt) => stmt.execute(env),
+            Stmt::Function(stmt) => stmt.execute(env),
             Stmt::If(stmt) => stmt.execute(env),
             Stmt::Print(stmt) => stmt.execute(env),
             Stmt::While(stmt) => stmt.execute(env),
@@ -25,6 +26,13 @@ impl Execute for Stmt {
 impl Execute for Expr {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         self.evaluate(env)?;
+        Ok(())
+    }
+}
+
+impl Execute for std::rc::Rc<Function> {
+    fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
+        env.define(self.name.clone(), RuntimeValue::Function(self.clone()));
         Ok(())
     }
 }

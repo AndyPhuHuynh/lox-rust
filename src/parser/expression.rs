@@ -1,7 +1,8 @@
 use crate::error::error_token;
 use crate::parser::{ParseError, ParseResult, Parser};
 use crate::syntax_tree::expression::{
-    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, LogicalOp, UnaryOp, UnaryOpToken,
+    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, LogicalOp, UnaryOp,
+    UnaryOpToken,
 };
 use crate::token::{TokenKind, TokenType};
 
@@ -17,16 +18,15 @@ impl Parser {
             let equal = self.previous();
             let value = self.assignment()?;
 
-            return match expr {
+            match expr {
                 Expr::Variable(var) => {
-                    Ok(Expr::assignment(
+                    return Ok(Expr::assignment(
                         AssignmentTarget::new(AssignmentTargetType::Variable(var.name), equal.line),
                         value,
-                    ))
+                    ));
                 }
                 _ => {
                     error_token(equal, "Invalid assignment target");
-                    Err(ParseError)
                 }
             }
         }
@@ -205,7 +205,38 @@ impl Parser {
             ));
         }
 
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.match_token_kind(&[TokenKind::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> ParseResult<Expr> {
+        let mut arguments: Vec<Expr> = Vec::new();
+        if !self.check(&TokenKind::RightParen) {
+            loop {
+                if arguments.len() >= 255 {
+                    error_token(self.peek(), "Cannot have more than 255 arguments");
+                }
+                arguments.push(self.expression()?);
+                if !self.match_token_kind(&[TokenKind::Comma]) {
+                    break;
+                }
+            }
+        }
+        let token = self.consume(TokenKind::RightParen, "Expect ')' after arguments")?;
+        Ok(Expr::call(callee, arguments, token.line))
     }
 
     fn primary(&mut self) -> ParseResult<Expr> {

@@ -1,9 +1,10 @@
 use crate::environment::EnvRef;
+use crate::runtime::call::Callable;
 use crate::runtime::error::RuntimeError;
 use crate::runtime::value::RuntimeValue;
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
 use crate::syntax_tree::expression::{
-    Assignment, AssignmentTargetType, BinaryExpr, BinaryOp, Expr, GroupingExpr, Literal,
+    Assignment, AssignmentTargetType, BinaryExpr, BinaryOp, Call, Expr, GroupingExpr, Literal,
     LogicalExpr, LogicalOp, UnaryExpr, UnaryOp, Variable,
 };
 
@@ -18,6 +19,7 @@ impl Evaluate for Expr {
             Expr::Unary(expr) => expr.evaluate(env),
             Expr::Binary(expr) => expr.evaluate(env),
             Expr::Logical(expr) => expr.evaluate(env),
+            Expr::Call(expr) => expr.evaluate(env),
             Expr::Grouping(expr) => expr.evaluate(env),
             Expr::Variable(expr) => expr.evaluate(env),
             Expr::Assignment(expr) => expr.evaluate(env),
@@ -77,6 +79,18 @@ impl Evaluate for LogicalExpr {
             LogicalOp::And if !left.is_truthy() => Ok(left),
             _ => self.right.evaluate(env),
         }
+    }
+}
+
+impl Evaluate for Call {
+    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let callee = self.callee.evaluate(env)?;
+        let arguments = self
+            .args
+            .iter()
+            .map(|arg| arg.evaluate(env))
+            .collect::<RuntimeResult<Vec<_>>>()?;
+        callee.call(&arguments, env).at_line(self.line)
     }
 }
 
