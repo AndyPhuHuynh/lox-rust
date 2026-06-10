@@ -10,6 +10,10 @@ pub struct Scanner<'a> {
     line: usize,
 }
 
+fn is_valid_identifier_character(c: u8) -> bool {
+    c.is_ascii_alphanumeric() || c == b'_' || c == b'-'
+}
+
 impl<'a> Scanner<'a> {
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
@@ -37,14 +41,14 @@ impl<'a> Scanner<'a> {
         if self.is_at_end() {
             return b'\0';
         }
-        return self.source[self.current];
+        self.source[self.current]
     }
 
     fn peek_next(&self) -> u8 {
         if self.current + 1 >= self.source.len() {
             return b'\0';
         }
-        return self.source[self.current + 1];
+        self.source[self.current + 1]
     }
 
     fn add_token(&mut self, r#type: TokenType) {
@@ -114,7 +118,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn identifier(&mut self) {
-        while self.peek().is_ascii_alphanumeric() {
+        while is_valid_identifier_character(self.peek()) {
             self.advance();
         }
 
@@ -160,9 +164,12 @@ impl<'a> Scanner<'a> {
             b'\n' => self.line += 1,
             b'"' => self.string(),
             b'0'..=b'9' => self.number(),
-            b'a'..=b'z' | b'A'..=b'Z' => self.identifier(),
             _ => {
-                error(self.line, format!("Unexpected byte 0x{:x}", c));
+                if is_valid_identifier_character(c) {
+                    self.identifier();
+                } else {
+                    error(self.line, format!("Unexpected byte 0x{:x}", c));
+                }
             }
         }
     }
