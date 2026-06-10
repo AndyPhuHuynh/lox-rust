@@ -39,6 +39,9 @@ impl Parser {
         if self.match_token_kind(&[TokenKind::Print]) {
             return self.print_statement();
         }
+        if self.match_token_kind(&[TokenKind::While]) {
+            return self.while_statement();
+        }
         if self.match_token_kind(&[TokenKind::LeftBrace]) {
             return Ok(Stmt::block(self.block()?));
         }
@@ -69,6 +72,14 @@ impl Parser {
         let expr = self.expression()?;
         self.consume(TokenKind::Semicolon, "Expect ';' after print expression")?;
         Ok(Stmt::print(expr))
+    }
+
+    fn while_statement(&mut self) -> ParseResult<Stmt> {
+        self.consume(TokenKind::LeftParen, "Expect '(' after 'while'")?;
+        let condition = self.expression()?;
+        self.consume(TokenKind::RightParen, "Expect ')' after 'while'")?;
+        let body = self.statement()?;
+        Ok(Stmt::r#while(condition, body))
     }
 
     fn block(&mut self) -> ParseResult<Vec<Stmt>> {

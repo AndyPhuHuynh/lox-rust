@@ -21,3 +21,11 @@ if (true or (a = 5)) {
         print b;
     }
 }
+
+print "-----";
+var b = 0;
+while (b < 5) {
+    print b;
+    b = b + 1;
+}
+print "-----";

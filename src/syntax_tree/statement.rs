@@ -5,6 +5,7 @@ pub enum Stmt {
     Expr(Expr),
     If(If),
     Print(Print),
+    While(While),
     Var(Var),
     Block(Block),
 }
@@ -20,6 +21,10 @@ impl Stmt {
 
     pub fn print(expr: Expr) -> Self {
         Self::Print(Print::new(expr))
+    }
+
+    pub fn r#while(cond: Expr, body: Stmt) -> Self {
+        Self::While(While::new(cond, body))
     }
 
     pub fn var(str: String, initializer: Option<Expr>) -> Self {
@@ -78,6 +83,21 @@ impl If {
             condition,
             then_branch: Box::new(then_branch),
             else_branch: else_branch.map(Box::new),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct While {
+    pub condition: Expr,
+    pub body: Box<Stmt>,
+}
+
+impl While {
+    pub fn new(condition: Expr, body: Stmt) -> Self {
+        Self {
+            condition,
+            body: Box::new(body),
         }
     }
 }
