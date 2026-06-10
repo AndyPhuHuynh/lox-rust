@@ -31,7 +31,7 @@ impl Environment {
     fn assign(&mut self, name: String, value: RuntimeValue) -> Option<()> {
         match self.values.insert(name, value) {
             None => Some(()),
-            Some(_) => None
+            Some(_) => None,
         }
     }
 }

@@ -31,9 +31,9 @@ impl Execute for Expr {
 impl Execute for If {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         if self.condition.evaluate(env)?.is_truthy() {
-            return self.then_branch.execute(env)
+            return self.then_branch.execute(env);
         } else if let Some(else_branch) = &self.else_branch {
-            return else_branch.execute(env)
+            return else_branch.execute(env);
         }
         Ok(())
     }

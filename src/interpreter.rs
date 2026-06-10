@@ -7,13 +7,13 @@ use crate::runtime::RuntimeResult;
 use crate::syntax_tree::statement::Stmt;
 
 pub struct Interpreter {
-    env: EnvRef
+    env: EnvRef,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            env: EnvRef::with_enclosing(None)
+            env: EnvRef::with_enclosing(None),
         }
     }
 

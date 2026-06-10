@@ -5,6 +5,7 @@ pub enum Expr {
     Literal(Literal),
     Unary(UnaryExpr),
     Binary(BinaryExpr),
+    Logical(LogicalExpr),
     Grouping(GroupingExpr),
     Variable(Variable),
     Assignment(Assignment),
@@ -35,6 +36,10 @@ impl Expr {
         Expr::Binary(BinaryExpr::new(left, operator, right))
     }
 
+    pub fn logical(left: Expr, operator: LogicalOpToken, right: Expr) -> Expr {
+        Expr::Logical(LogicalExpr::new(left, operator, right))
+    }
+
     pub fn grouping(expression: Expr) -> Expr {
         Expr::Grouping(GroupingExpr::new(expression))
     }
@@ -54,6 +59,7 @@ impl Display for Expr {
             Expr::Literal(expr) => write!(f, "{expr}"),
             Expr::Unary(expr) => write!(f, "{expr}"),
             Expr::Binary(expr) => write!(f, "{expr}"),
+            Expr::Logical(expr) => write!(f, "{expr}"),
             Expr::Grouping(expr) => write!(f, "{expr}"),
             Expr::Variable(expr) => write!(f, "{expr}"),
             Expr::Assignment(expr) => write!(f, "{expr}"),
@@ -172,8 +178,8 @@ pub struct BinaryOpToken {
 }
 
 impl BinaryOpToken {
-    pub fn new(operator: BinaryOp, line: usize) -> BinaryOpToken {
-        BinaryOpToken { operator, line }
+    pub fn new(operator: BinaryOp, line: usize) -> Self {
+        Self { operator, line }
     }
 }
 
@@ -201,6 +207,62 @@ impl BinaryExpr {
 }
 
 impl Display for BinaryExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({} {} {})", self.op_token, self.left, self.right,)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum LogicalOp {
+    Or,
+    And,
+}
+
+impl Display for LogicalOp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            LogicalOp::Or => write!(f, "or"),
+            LogicalOp::And => write!(f, "and"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LogicalOpToken {
+    pub operator: LogicalOp,
+    pub line: usize,
+}
+
+impl LogicalOpToken {
+    pub fn new(operator: LogicalOp, line: usize) -> Self {
+        Self { operator, line }
+    }
+}
+
+impl Display for LogicalOpToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.operator.fmt(f)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LogicalExpr {
+    pub left: Box<Expr>,
+    pub op_token: LogicalOpToken,
+    pub right: Box<Expr>,
+}
+
+impl LogicalExpr {
+    pub fn new(left: Expr, operator: LogicalOpToken, right: Expr) -> Self {
+        Self {
+            left: Box::new(left),
+            op_token: operator,
+            right: Box::new(right),
+        }
+    }
+}
+
+impl Display for LogicalExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "({} {} {})", self.op_token, self.left, self.right,)
     }

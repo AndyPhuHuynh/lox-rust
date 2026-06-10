@@ -12,4 +12,12 @@ if (a == 3) {
     print "whoops";
 }
 
-
+if (true or (a = 5)) {
+    print "a was not set to 5 due to short circuiting";
+    print a;
+    var b = 10;
+    if (false or (b = 200)) {
+        print "now, b is 200";
+        print b;
+    }
+}

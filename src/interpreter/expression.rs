@@ -3,8 +3,8 @@ use crate::runtime::error::RuntimeError;
 use crate::runtime::value::RuntimeValue;
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
 use crate::syntax_tree::expression::{
-    Assignment, AssignmentTargetType, BinaryExpr, BinaryOp, Expr, GroupingExpr, Literal, UnaryExpr,
-    UnaryOp, Variable,
+    Assignment, AssignmentTargetType, BinaryExpr, BinaryOp, Expr, GroupingExpr, Literal,
+    LogicalExpr, LogicalOp, UnaryExpr, UnaryOp, Variable,
 };
 
 pub trait Evaluate {
@@ -17,6 +17,7 @@ impl Evaluate for Expr {
             Expr::Literal(expr) => expr.evaluate(env),
             Expr::Unary(expr) => expr.evaluate(env),
             Expr::Binary(expr) => expr.evaluate(env),
+            Expr::Logical(expr) => expr.evaluate(env),
             Expr::Grouping(expr) => expr.evaluate(env),
             Expr::Variable(expr) => expr.evaluate(env),
             Expr::Assignment(expr) => expr.evaluate(env),
@@ -67,6 +68,18 @@ impl Evaluate for BinaryExpr {
     }
 }
 
+impl Evaluate for LogicalExpr {
+    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let left = self.left.evaluate(env)?;
+
+        match self.op_token.operator {
+            LogicalOp::Or if left.is_truthy() => Ok(left),
+            LogicalOp::And if !left.is_truthy() => Ok(left),
+            _ => self.right.evaluate(env),
+        }
+    }
+}
+
 impl Evaluate for GroupingExpr {
     fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         self.expression.evaluate(env)
@@ -89,7 +102,8 @@ impl Evaluate for Assignment {
                 let rhs_value = self.value.evaluate(env)?;
                 if let None = env.assign(name.clone(), rhs_value.clone()) {
                     return Err(RuntimeError::with_message(
-                        format!("Undefined variable at line {}: {}", self.target.line, name).as_str(),
+                        format!("Undefined variable at line {}: {}", self.target.line, name)
+                            .as_str(),
                     ));
                 }
                 Ok(rhs_value)

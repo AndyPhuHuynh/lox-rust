@@ -34,7 +34,7 @@ impl Parser {
 
     fn statement(&mut self) -> ParseResult<Stmt> {
         if self.match_token_kind(&[TokenKind::If]) {
-            return self.if_statement()
+            return self.if_statement();
         }
         if self.match_token_kind(&[TokenKind::Print]) {
             return self.print_statement();

@@ -1,7 +1,8 @@
 use crate::error::error_token;
 use crate::parser::{ParseError, ParseResult, Parser};
 use crate::syntax_tree::expression::{
-    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, UnaryOp, UnaryOpToken,
+    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, LogicalOp,
+    LogicalOpToken, UnaryOp, UnaryOpToken,
 };
 use crate::token::{TokenKind, TokenType};
 
@@ -11,23 +12,70 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> ParseResult<Expr> {
-        let expr = self.equality()?;
+        let expr = self.logical_or()?;
 
         if self.match_token_kind(&[TokenKind::Equal]) {
             let equal = self.previous();
             let value = self.assignment()?;
 
-            match expr {
+            return match expr {
                 Expr::Variable(var) => {
-                    return Ok(Expr::assignment(
+                    Ok(Expr::assignment(
                         AssignmentTarget::new(AssignmentTargetType::Variable(var.name), equal.line),
                         value,
-                    ));
+                    ))
                 }
                 _ => {
                     error_token(equal, "Invalid assignment target");
+                    Err(ParseError)
                 }
             }
+        }
+
+        Ok(expr)
+    }
+
+    fn logical_or(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.logical_and()?;
+
+        while self.match_token_kind(&[TokenKind::Or]) {
+            let token_op = self.previous();
+            let right = self.logical_or()?;
+
+            let logical_op = match token_op.r#type {
+                TokenType::Or => LogicalOp::Or,
+                _ => {
+                    error_token(
+                        token_op.clone(),
+                        format!("Unexpected logical or operator: {:?}", token_op),
+                    );
+                    return Err(ParseError);
+                }
+            };
+            expr = Expr::logical(expr, LogicalOpToken::new(logical_op, token_op.line), right);
+        }
+
+        Ok(expr)
+    }
+
+    fn logical_and(&mut self) -> ParseResult<Expr> {
+        let mut expr = self.equality()?;
+
+        while self.match_token_kind(&[TokenKind::And]) {
+            let token_op = self.previous();
+            let right = self.logical_and()?;
+
+            let logical_op = match token_op.r#type {
+                TokenType::And => LogicalOp::And,
+                _ => {
+                    error_token(
+                        token_op.clone(),
+                        format!("Unexpected logical and operator: {:?}", token_op),
+                    );
+                    return Err(ParseError);
+                }
+            };
+            expr = Expr::logical(expr, LogicalOpToken::new(logical_op, token_op.line), right);
         }
 
         Ok(expr)
