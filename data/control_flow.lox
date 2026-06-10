@@ -23,9 +23,17 @@ if (true or (a = 5)) {
 }
 
 print "-----";
+
 var b = 0;
 while (b < 5) {
     print b;
     b = b + 1;
 }
+
+print "-----";
+
+for (var c = 1 ; c < 2000; c = c * 2) {
+    print c;
+}
+
 print "-----";

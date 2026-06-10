@@ -1,8 +1,7 @@
 use crate::error::error_token;
 use crate::parser::{ParseError, ParseResult, Parser};
 use crate::syntax_tree::expression::{
-    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, LogicalOp,
-    LogicalOpToken, UnaryOp, UnaryOpToken,
+    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, LogicalOp, UnaryOp, UnaryOpToken,
 };
 use crate::token::{TokenKind, TokenType};
 
@@ -52,7 +51,7 @@ impl Parser {
                     return Err(ParseError);
                 }
             };
-            expr = Expr::logical(expr, LogicalOpToken::new(logical_op, token_op.line), right);
+            expr = Expr::logical(expr, logical_op, right);
         }
 
         Ok(expr)
@@ -75,7 +74,7 @@ impl Parser {
                     return Err(ParseError);
                 }
             };
-            expr = Expr::logical(expr, LogicalOpToken::new(logical_op, token_op.line), right);
+            expr = Expr::logical(expr, logical_op, right);
         }
 
         Ok(expr)

@@ -72,7 +72,7 @@ impl Evaluate for LogicalExpr {
     fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         let left = self.left.evaluate(env)?;
 
-        match self.op_token.operator {
+        match self.op {
             LogicalOp::Or if left.is_truthy() => Ok(left),
             LogicalOp::And if !left.is_truthy() => Ok(left),
             _ => self.right.evaluate(env),

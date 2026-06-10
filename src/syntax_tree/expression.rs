@@ -36,7 +36,7 @@ impl Expr {
         Expr::Binary(BinaryExpr::new(left, operator, right))
     }
 
-    pub fn logical(left: Expr, operator: LogicalOpToken, right: Expr) -> Expr {
+    pub fn logical(left: Expr, operator: LogicalOp, right: Expr) -> Expr {
         Expr::Logical(LogicalExpr::new(left, operator, right))
     }
 
@@ -228,35 +228,17 @@ impl Display for LogicalOp {
 }
 
 #[derive(Debug, Clone)]
-pub struct LogicalOpToken {
-    pub operator: LogicalOp,
-    pub line: usize,
-}
-
-impl LogicalOpToken {
-    pub fn new(operator: LogicalOp, line: usize) -> Self {
-        Self { operator, line }
-    }
-}
-
-impl Display for LogicalOpToken {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        self.operator.fmt(f)
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct LogicalExpr {
     pub left: Box<Expr>,
-    pub op_token: LogicalOpToken,
+    pub op: LogicalOp,
     pub right: Box<Expr>,
 }
 
 impl LogicalExpr {
-    pub fn new(left: Expr, operator: LogicalOpToken, right: Expr) -> Self {
+    pub fn new(left: Expr, operator: LogicalOp, right: Expr) -> Self {
         Self {
             left: Box::new(left),
-            op_token: operator,
+            op: operator,
             right: Box::new(right),
         }
     }
@@ -264,7 +246,7 @@ impl LogicalExpr {
 
 impl Display for LogicalExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({} {} {})", self.op_token, self.left, self.right,)
+        write!(f, "({} {} {})", self.op, self.left, self.right,)
     }
 }
 
