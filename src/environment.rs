@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+#[derive(Debug)]
 struct Environment {
     enclosing: Option<EnvRef>,
     values: HashMap<String, RuntimeValue>,
@@ -36,7 +37,7 @@ impl Environment {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EnvRef {
     env: Rc<RefCell<Environment>>,
 }

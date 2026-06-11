@@ -1,0 +1,12 @@
+fun outer(i) {
+    fun print_i() {
+        print i;
+    }
+    return print_i;
+}
+
+var a = outer(1);
+var b = outer(2);
+
+a();
+b();

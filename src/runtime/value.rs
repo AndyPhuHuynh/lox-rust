@@ -1,3 +1,4 @@
+use crate::environment::EnvRef;
 use crate::syntax_tree::statement::Function;
 use std::fmt::Display;
 use std::rc::Rc;
@@ -8,7 +9,7 @@ pub enum RuntimeValue {
     Number(f64),
     String(String),
     Bool(bool),
-    Function(Rc<Function>),
+    Function { func: Rc<Function>, closure: EnvRef },
 }
 
 impl RuntimeValue {
@@ -28,7 +29,7 @@ impl Display for RuntimeValue {
             RuntimeValue::Number(num) => write!(f, "{}", num),
             RuntimeValue::String(str) => write!(f, "{}", str),
             RuntimeValue::Bool(bool) => write!(f, "{}", bool),
-            RuntimeValue::Function(function) => write!(f, "{}", function),
+            RuntimeValue::Function { func, .. } => write!(f, "{}", func),
         }
     }
 }
@@ -40,7 +41,9 @@ impl PartialEq for RuntimeValue {
             (RuntimeValue::Number(num1), RuntimeValue::Number(num2)) => num1 == num2,
             (RuntimeValue::String(str1), RuntimeValue::String(str2)) => str1 == str2,
             (RuntimeValue::Bool(bool1), RuntimeValue::Bool(bool2)) => bool1 == bool2,
-            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => Rc::ptr_eq(a, b),
+            (RuntimeValue::Function { func: a, .. }, RuntimeValue::Function { func: b, .. }) => {
+                Rc::ptr_eq(a, b)
+            }
             _ => false,
         }
     }

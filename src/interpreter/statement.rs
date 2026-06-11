@@ -34,7 +34,13 @@ impl Execute for Expr {
 
 impl Execute for std::rc::Rc<Function> {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
-        env.define(self.name.clone(), RuntimeValue::Function(self.clone()));
+        env.define(
+            self.name.clone(),
+            RuntimeValue::Function {
+                func: self.clone(),
+                closure: env.clone(),
+            },
+        );
         Ok(())
     }
 }

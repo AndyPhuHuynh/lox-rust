@@ -11,9 +11,9 @@ pub trait Callable {
 }
 
 impl Callable for RuntimeValue {
-    fn call(self, args: &[RuntimeValue], env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn call(self, args: &[RuntimeValue], _: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         match self {
-            RuntimeValue::Function(func) => func.call(args, env),
+            RuntimeValue::Function { func, closure } => func.call(args, &mut closure.clone()),
             _ => Err(RuntimeException::with_message(
                 "You can only call functions or classes",
             )),

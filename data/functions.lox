@@ -19,7 +19,16 @@ fun PrintFib(count) {
     return "Fib completed!";
 }
 
+fun RecursiveFib(n) {
+    if (n <= 1) return 1;
+    return RecursiveFib(n - 2) + RecursiveFib(n - 1);
+}
+
 var ret = GetFunc()(10);
 print ret;
 
+ret = RecursiveFib(11);
+print ret;
+
+print RecursiveFib;
 return 56;
