@@ -1,7 +1,7 @@
 use crate::environment::EnvRef;
 use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
-use crate::runtime::error::RuntimeException;
+use crate::runtime::error::{redefinition_error, RuntimeException};
 use crate::runtime::value::RuntimeValue;
 use crate::syntax_tree::expression::Expr;
 use crate::syntax_tree::statement::{Block, Function, If, Print, Return, Stmt, Var, While};
@@ -34,14 +34,16 @@ impl Execute for Expr {
 
 impl Execute for std::rc::Rc<Function> {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
-        env.define(
+        match env.define(
             self.name.clone(),
             RuntimeValue::Function {
                 func: self.clone(),
                 closure: env.clone(),
             },
-        );
-        Ok(())
+        ) {
+            None => Err(redefinition_error(&self.name, self.line)),
+            Some(_) => Ok(())
+        }
     }
 }
 
@@ -93,8 +95,10 @@ impl Execute for Var {
             value = expr.evaluate(env)?;
         }
 
-        env.define(self.name.clone(), value);
-        Ok(())
+        match env.define(self.name.clone(), value) {
+            None => Err(redefinition_error(&self.name, self.line)),
+            Some(_) => Ok(())
+        }
     }
 }
 

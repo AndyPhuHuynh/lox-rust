@@ -49,8 +49,12 @@ impl EnvRef {
         }
     }
 
-    pub fn define(&self, name: String, value: RuntimeValue) {
+    pub fn define(&self, name: String, value: RuntimeValue) -> Option<()> {
+        if self.env.borrow().is_defined(name.as_str()) {
+            return None;
+        }
         self.env.borrow_mut().define(name, value);
+        Some(())
     }
 
     pub fn get(&self, name: &str) -> Option<RuntimeValue> {

@@ -30,10 +30,14 @@ fn display_error(error: RuntimeException) -> String {
             value: _value,
             line,
         } => {
-            format!(
-                "Runtime error at line {}: return statement encountered outside of function or method",
-                line
-            )
+            if let Some(line) = line {
+                format!(
+                    "Runtime error at line {}: return statement encountered outside of function or method",
+                    line
+                )
+            } else {
+                "Runtime error: return statement encountered outside of function or method".to_string()
+            }
         }
     }
 }

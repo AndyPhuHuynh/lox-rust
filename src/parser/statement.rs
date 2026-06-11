@@ -51,7 +51,7 @@ impl Parser {
         )?;
         let body = self.block()?;
 
-        Ok(Stmt::function(name.lexeme, params, body))
+        Ok(Stmt::function(name.lexeme, params, body, name.line))
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {
@@ -66,7 +66,7 @@ impl Parser {
             TokenKind::Semicolon,
             "Expect ';' after variable declaration",
         )?;
-        Ok(Stmt::var(name.lexeme, initializer))
+        Ok(Stmt::var(name.lexeme, initializer, name.line))
     }
 
     fn statement(&mut self) -> ParseResult<Stmt> {

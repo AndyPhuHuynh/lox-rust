@@ -19,8 +19,8 @@ impl Stmt {
         Self::Expr(expr)
     }
 
-    pub fn function(name: String, params: Vec<String>, body: Vec<Stmt>) -> Self {
-        Stmt::Function(Rc::new(Function::new(name, params, body)))
+    pub fn function(name: String, params: Vec<String>, body: Vec<Stmt>, line: usize) -> Self {
+        Stmt::Function(Rc::new(Function::new(name, params, body, line)))
     }
 
     pub fn if_(cond: Expr, then: Stmt, else_: Option<Stmt>) -> Self {
@@ -39,8 +39,8 @@ impl Stmt {
         Self::While(While::new(cond, body))
     }
 
-    pub fn var(str: String, initializer: Option<Expr>) -> Self {
-        Self::Var(Var::new(str, initializer))
+    pub fn var(str: String, initializer: Option<Expr>, line: usize) -> Self {
+        Self::Var(Var::new(str, initializer, line))
     }
 
     pub fn block(stmts: Vec<Stmt>) -> Self {
@@ -53,11 +53,17 @@ pub struct Function {
     pub name: String,
     pub params: Vec<String>,
     pub body: Vec<Stmt>,
+    pub line: usize,
 }
 
 impl Function {
-    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>) -> Self {
-        Self { name, params, body }
+    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, line: usize) -> Self {
+        Self {
+            name,
+            params,
+            body,
+            line,
+        }
     }
 }
 
@@ -126,11 +132,16 @@ impl While {
 pub struct Var {
     pub name: String,
     pub initializer: Option<Expr>,
+    pub line: usize,
 }
 
 impl Var {
-    pub fn new(name: String, initializer: Option<Expr>) -> Self {
-        Self { name, initializer }
+    pub fn new(name: String, initializer: Option<Expr>, line: usize) -> Self {
+        Self {
+            name,
+            initializer,
+            line,
+        }
     }
 }
 
