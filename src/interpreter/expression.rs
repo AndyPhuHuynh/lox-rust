@@ -117,17 +117,13 @@ impl Evaluate for Assignment {
         match &self.target {
             AssignmentTarget::Variable(var) => {
                 let rhs_value = self.value.evaluate(env)?;
-                let assign_result = match var.local_distance {
+                match var.local_distance {
                     None => env.assign(var.name.clone(), rhs_value.clone()),
                     Some(distance) => env.assign_at(var.name.clone(), rhs_value.clone(), distance),
-                };
-
-                match assign_result {
-                    None => Err(RuntimeException::with_message(
-                        format!("Undefined variable at line {}: {}", var.line, var.name).as_str(),
-                    )),
-                    Some(()) => Ok(rhs_value),
                 }
+                .ok_or(RuntimeException::with_message(
+                    format!("Undefined variable at line {}: {}", var.line, var.name).as_str(),
+                ))
             }
         }
     }

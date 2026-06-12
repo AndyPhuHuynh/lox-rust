@@ -8,7 +8,7 @@ mod scanner;
 mod syntax_tree;
 mod token;
 
-use crate::analysis::variable_binding::BindingResolver;
+use crate::analysis::resolver::Resolver;
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::runtime::error::RuntimeException;
@@ -62,8 +62,15 @@ fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
         }
     };
 
-    let mut resolver = BindingResolver::new();
+    let mut resolver = Resolver::new();
     resolver.resolve_statements(&mut statements);
+    if resolver.has_encountered_errors() {
+        if exit_on_error {
+            exit(65);
+        } else {
+            return;
+        }
+    }
 
     match interpreter.interpret(&statements) {
         Ok(_) => {}

@@ -1,0 +1,9 @@
+var a = 2;
+var a = 2;
+
+fun a() {
+    print a;
+    return "not top level";
+}
+
+return "top level!";

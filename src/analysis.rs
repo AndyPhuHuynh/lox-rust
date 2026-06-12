@@ -1,1 +1,1 @@
-pub mod variable_binding;
+pub mod resolver;

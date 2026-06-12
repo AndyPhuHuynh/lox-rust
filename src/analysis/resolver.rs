@@ -7,17 +7,29 @@ use crate::syntax_tree::statement::{Block, Function, If, Print, Return, Stmt, Va
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-pub struct BindingResolver {
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+enum FunctionType {
+    None,
+    Function,
+}
+
+pub struct Resolver {
     error_encountered: bool,
+    current_fn_type: FunctionType,
     scopes: Vec<HashMap<String, bool>>,
 }
 
-impl BindingResolver {
+impl Resolver {
     pub fn new() -> Self {
-        BindingResolver {
+        Resolver {
             error_encountered: false,
+            current_fn_type: FunctionType::None,
             scopes: vec![HashMap::new()],
         }
+    }
+
+    pub fn has_encountered_errors(&self) -> bool {
+        self.error_encountered
     }
 
     pub fn resolve_statements(&mut self, stmts: &mut [Stmt]) {
@@ -27,7 +39,7 @@ impl BindingResolver {
     }
 }
 
-impl BindingResolver {
+impl Resolver {
     fn begin_scope(&mut self) {
         self.scopes.push(HashMap::new());
     }
@@ -36,10 +48,20 @@ impl BindingResolver {
         self.scopes.pop();
     }
 
-    fn declare_variable(&mut self, name: &str) {
+    fn declare_variable(&mut self, name: &str, line: usize) {
         match self.scopes.last_mut() {
             None => {}
             Some(scope) => {
+                if scope.contains_key(name) {
+                    error(
+                        line,
+                        format!(
+                            "Attempting to redefine symbol '{}' which has already been previously defined",
+                            name
+                        ),
+                    );
+                    self.error_encountered = true;
+                }
                 scope.insert(name.to_string(), false);
             }
         }
@@ -56,7 +78,7 @@ impl BindingResolver {
 }
 
 // Resolve statements
-impl BindingResolver {
+impl Resolver {
     fn resolve_statement(&mut self, stmt: &mut Stmt) {
         match stmt {
             Stmt::Expr(expr) => self.resolve_expression(expr),
@@ -71,9 +93,9 @@ impl BindingResolver {
     }
 
     fn resolve_function_stmt(&mut self, func: &RefCell<Function>) {
-        self.declare_variable(&func.borrow().name);
+        self.declare_variable(&func.borrow().name, func.borrow().line);
         self.define_variable(&func.borrow().name);
-        self.resolve_function(func);
+        self.resolve_function(func, FunctionType::Function);
     }
 
     fn resolve_if_stmt(&mut self, if_stmt: &mut If) {
@@ -89,6 +111,10 @@ impl BindingResolver {
     }
 
     fn resolve_return_stmt(&mut self, return_stmt: &mut Return) {
+        if self.current_fn_type == FunctionType::None {
+            error(return_stmt.line, "Cannot return from top-level code");
+        }
+
         if let Some(expr) = &mut return_stmt.expr {
             self.resolve_expression(expr);
         }
@@ -100,7 +126,7 @@ impl BindingResolver {
     }
 
     fn resolve_var_stmt(&mut self, var: &mut Var) {
-        self.declare_variable(&var.name);
+        self.declare_variable(&var.name, var.line);
         if let Some(init) = &mut var.initializer {
             self.resolve_expression(init);
         }
@@ -115,21 +141,26 @@ impl BindingResolver {
         self.end_scope();
     }
 
-    fn resolve_function(&mut self, func: &RefCell<Function>) {
+    fn resolve_function(&mut self, func: &RefCell<Function>, fn_type: FunctionType) {
+        let cached_type = self.current_fn_type;
+        self.current_fn_type = fn_type;
+
         self.begin_scope();
         for param in &func.borrow().params {
-            self.declare_variable(param);
+            self.declare_variable(param, func.borrow().line);
             self.define_variable(param);
         }
         for stmt in &mut func.borrow_mut().body {
             self.resolve_statement(stmt);
         }
         self.end_scope();
+
+        self.current_fn_type = cached_type;
     }
 }
 
 // Resolve expressions
-impl BindingResolver {
+impl Resolver {
     fn resolve_expression(&mut self, expr: &mut Expr) {
         match expr {
             Expr::Literal(_) => {}

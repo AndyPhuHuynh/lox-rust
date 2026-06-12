@@ -29,11 +29,8 @@ impl Environment {
         self.values.get(name).cloned()
     }
 
-    fn assign(&mut self, name: String, value: RuntimeValue) -> Option<()> {
-        match self.values.insert(name, value) {
-            None => None,
-            Some(_) => Some(()),
-        }
+    fn assign(&mut self, name: String, value: RuntimeValue) -> Option<RuntimeValue> {
+        self.values.insert(name, value)
     }
 }
 
@@ -78,12 +75,11 @@ impl EnvRef {
         env_ref.env.borrow().get(name)
     }
 
-    pub fn assign(&mut self, name: String, value: RuntimeValue) -> Option<()> {
+    pub fn assign(&mut self, name: String, value: RuntimeValue) -> Option<RuntimeValue> {
         let mut current = Some(self.clone());
         while let Some(env_ref) = current {
             if env_ref.env.borrow_mut().is_defined(name.as_str()) {
-                env_ref.env.borrow_mut().assign(name, value);
-                return Some(());
+                return Some(env_ref.env.borrow_mut().assign(name, value)?);
             }
             current = env_ref.env.borrow().enclosing.clone()
         }
@@ -95,7 +91,7 @@ impl EnvRef {
         name: String,
         value: RuntimeValue,
         mut distance: usize,
-    ) -> Option<()> {
+    ) -> Option<RuntimeValue> {
         let mut env_ref = self.clone();
         while distance > 0 {
             let next = env_ref.env.borrow().enclosing.clone()?;
