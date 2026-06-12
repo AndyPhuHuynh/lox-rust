@@ -4,7 +4,7 @@ use crate::runtime::error::RuntimeException;
 use crate::runtime::value::RuntimeValue;
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
 use crate::syntax_tree::expression::{
-    Assignment, AssignmentTargetType, BinaryExpr, BinaryOp, Call, Expr, GroupingExpr, Literal,
+    Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, GroupingExpr, Literal,
     LogicalExpr, LogicalOp, UnaryExpr, UnaryOp, Variable,
 };
 
@@ -102,25 +102,32 @@ impl Evaluate for GroupingExpr {
 
 impl Evaluate for Variable {
     fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        env.get(self.name.as_str())
-            .ok_or(RuntimeException::with_message(
-                format!("Undefined variable at line {}: {}", self.line, self.name).as_str(),
-            ))
+        match self.local_distance {
+            None => env.get(self.name.as_str()),
+            Some(distance) => env.get_at(self.name.as_str(), distance),
+        }
+        .ok_or(RuntimeException::with_message(
+            format!("Undefined variable at line {}: {}", self.line, self.name).as_str(),
+        ))
     }
 }
 
 impl Evaluate for Assignment {
     fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        match &self.target.r#type {
-            AssignmentTargetType::Variable(name) => {
+        match &self.target {
+            AssignmentTarget::Variable(var) => {
                 let rhs_value = self.value.evaluate(env)?;
-                if let None = env.assign(name.clone(), rhs_value.clone()) {
-                    return Err(RuntimeException::with_message(
-                        format!("Undefined variable at line {}: {}", self.target.line, name)
-                            .as_str(),
-                    ));
+                let assign_result = match var.local_distance {
+                    None => env.assign(var.name.clone(), rhs_value.clone()),
+                    Some(distance) => env.assign_at(var.name.clone(), rhs_value.clone(), distance),
+                };
+
+                match assign_result {
+                    None => Err(RuntimeException::with_message(
+                        format!("Undefined variable at line {}: {}", var.line, var.name).as_str(),
+                    )),
+                    Some(()) => Ok(rhs_value),
                 }
-                Ok(rhs_value)
             }
         }
     }

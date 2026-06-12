@@ -1,12 +1,16 @@
-fun outer(i) {
-    fun print_i() {
-        print i;
+var a = "global";
+{
+    fun ShowA() {
+        print a;
     }
-    return print_i;
+
+    ShowA();
+
+    var a = "block";
+    fun ShowALocal() {
+        print a;
+    }
+
+    ShowA();
+    ShowALocal();
 }
-
-var a = outer(1);
-var b = outer(2);
-
-a();
-b();

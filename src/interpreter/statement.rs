@@ -1,10 +1,12 @@
 use crate::environment::EnvRef;
 use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
-use crate::runtime::error::{redefinition_error, RuntimeException};
+use crate::runtime::error::{RuntimeException, redefinition_error};
 use crate::runtime::value::RuntimeValue;
 use crate::syntax_tree::expression::Expr;
 use crate::syntax_tree::statement::{Block, Function, If, Print, Return, Stmt, Var, While};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub trait Execute {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()>;
@@ -32,17 +34,17 @@ impl Execute for Expr {
     }
 }
 
-impl Execute for std::rc::Rc<Function> {
+impl Execute for Rc<RefCell<Function>> {
     fn execute(&self, env: &mut EnvRef) -> RuntimeResult<()> {
         match env.define(
-            self.name.clone(),
+            self.borrow().name.clone(),
             RuntimeValue::Function {
                 func: self.clone(),
                 closure: env.clone(),
             },
         ) {
-            None => Err(redefinition_error(&self.name, self.line)),
-            Some(_) => Ok(())
+            None => Err(redefinition_error(&self.borrow().name, self.borrow().line)),
+            Some(_) => Ok(()),
         }
     }
 }
@@ -97,7 +99,7 @@ impl Execute for Var {
 
         match env.define(self.name.clone(), value) {
             None => Err(redefinition_error(&self.name, self.line)),
-            Some(_) => Ok(())
+            Some(_) => Ok(()),
         }
     }
 }

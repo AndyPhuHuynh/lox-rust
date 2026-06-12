@@ -306,11 +306,16 @@ impl Display for GroupingExpr {
 pub struct Variable {
     pub name: String,
     pub line: usize,
+    pub local_distance: Option<usize>,
 }
 
 impl Variable {
     pub fn new(name: String, line: usize) -> Self {
-        Self { name, line }
+        Self {
+            name,
+            line,
+            local_distance: None,
+        }
     }
 }
 
@@ -321,33 +326,15 @@ impl Display for Variable {
 }
 
 #[derive(Debug, Clone)]
-pub enum AssignmentTargetType {
-    Variable(String),
-}
-
-impl Display for AssignmentTargetType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AssignmentTargetType::Variable(name) => write!(f, "{}", name),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct AssignmentTarget {
-    pub r#type: AssignmentTargetType,
-    pub line: usize,
-}
-
-impl AssignmentTarget {
-    pub fn new(r#type: AssignmentTargetType, line: usize) -> Self {
-        Self { r#type, line }
-    }
+pub enum AssignmentTarget {
+    Variable(Variable),
 }
 
 impl Display for AssignmentTarget {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.r#type)
+        match self {
+            AssignmentTarget::Variable(name) => write!(f, "{}", name),
+        }
     }
 }
 

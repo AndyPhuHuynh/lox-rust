@@ -1,5 +1,6 @@
 use crate::environment::EnvRef;
 use crate::syntax_tree::statement::Function;
+use std::cell::RefCell;
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -9,7 +10,10 @@ pub enum RuntimeValue {
     Number(f64),
     String(String),
     Bool(bool),
-    Function { func: Rc<Function>, closure: EnvRef },
+    Function {
+        func: Rc<RefCell<Function>>,
+        closure: EnvRef,
+    },
 }
 
 impl RuntimeValue {
@@ -29,7 +33,7 @@ impl Display for RuntimeValue {
             RuntimeValue::Number(num) => write!(f, "{}", num),
             RuntimeValue::String(str) => write!(f, "{}", str),
             RuntimeValue::Bool(bool) => write!(f, "{}", bool),
-            RuntimeValue::Function { func, .. } => write!(f, "{}", func),
+            RuntimeValue::Function { func, .. } => write!(f, "{}", func.borrow()),
         }
     }
 }

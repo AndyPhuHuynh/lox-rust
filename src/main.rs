@@ -1,3 +1,4 @@
+mod analysis;
 mod environment;
 mod error;
 mod interpreter;
@@ -7,15 +8,16 @@ mod scanner;
 mod syntax_tree;
 mod token;
 
+use crate::analysis::variable_binding::BindingResolver;
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
+use crate::runtime::error::RuntimeException;
 use crate::scanner::Scanner;
 
-use crate::interpreter::Interpreter;
-use crate::runtime::error::RuntimeException;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
-use std::process;
+use std::process::exit;
 
 fn display_error(error: RuntimeException) -> String {
     match error {
@@ -36,7 +38,8 @@ fn display_error(error: RuntimeException) -> String {
                     line
                 )
             } else {
-                "Runtime error: return statement encountered outside of function or method".to_string()
+                "Runtime error: return statement encountered outside of function or method"
+                    .to_string()
             }
         }
     }
@@ -47,24 +50,27 @@ fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
     let tokens = scanner.scan_tokens();
 
     let mut parser = Parser::new(tokens.clone());
-    let statements = match parser.parse() {
+    let mut statements = match parser.parse() {
         Ok(stmt) => stmt,
         Err(_) => {
             println!("Parse error");
             if exit_on_error {
-                process::exit(65);
+                exit(65);
             } else {
                 return;
             }
         }
     };
 
+    let mut resolver = BindingResolver::new();
+    resolver.resolve_statements(&mut statements);
+
     match interpreter.interpret(&statements) {
         Ok(_) => {}
         Err(err) => {
             println!("{}", display_error(err));
             if exit_on_error {
-                process::exit(70);
+                exit(70);
             } else {
                 return;
             }

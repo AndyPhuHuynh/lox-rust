@@ -1,11 +1,12 @@
 use crate::syntax_tree::expression::Expr;
+use std::cell::RefCell;
 use std::fmt::Display;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
     Expr(Expr),
-    Function(Rc<Function>),
+    Function(Rc<RefCell<Function>>),
     If(If),
     Print(Print),
     Return(Return),
@@ -20,7 +21,9 @@ impl Stmt {
     }
 
     pub fn function(name: String, params: Vec<String>, body: Vec<Stmt>, line: usize) -> Self {
-        Stmt::Function(Rc::new(Function::new(name, params, body, line)))
+        Stmt::Function(Rc::new(RefCell::new(Function::new(
+            name, params, body, line,
+        ))))
     }
 
     pub fn if_(cond: Expr, then: Stmt, else_: Option<Stmt>) -> Self {

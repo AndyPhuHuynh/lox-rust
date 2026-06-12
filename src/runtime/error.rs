@@ -21,7 +21,10 @@ impl RuntimeException {
     }
 
     pub fn return_value(value: RuntimeValue, line: usize) -> Self {
-        Self::Return { value, line: Some(line) }
+        Self::Return {
+            value,
+            line: Some(line),
+        }
     }
 
     pub fn at_line(mut self, line_num: usize) -> Self {
@@ -29,21 +32,17 @@ impl RuntimeException {
             Self::RuntimeError {
                 message: _message,
                 line,
-            } => {
-                match line {
-                    None => *line = Some(line_num),
-                    Some(_) => {}
-                }
+            } => match line {
+                None => *line = Some(line_num),
+                Some(_) => {}
             },
             Self::Return {
                 value: _value,
                 line,
-            } => {
-                match line {
-                    None => *line = Some(line_num),
-                    Some(_) => {}
-                }
-            }
+            } => match line {
+                None => *line = Some(line_num),
+                Some(_) => {}
+            },
         }
         self
     }

@@ -134,8 +134,6 @@ impl Parser {
             body = Stmt::block(vec![init, body])
         }
 
-        println!("{:#?}", body);
-
         Ok(body)
     }
 

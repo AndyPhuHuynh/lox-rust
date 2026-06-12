@@ -1,8 +1,7 @@
 use crate::error::error_token;
 use crate::parser::{ParseError, ParseResult, Parser};
 use crate::syntax_tree::expression::{
-    AssignmentTarget, AssignmentTargetType, BinaryOp, BinaryOpToken, Expr, LogicalOp, UnaryOp,
-    UnaryOpToken,
+    AssignmentTarget, BinaryOp, BinaryOpToken, Expr, LogicalOp, UnaryOp, UnaryOpToken,
 };
 use crate::token::{TokenKind, TokenType};
 
@@ -20,10 +19,7 @@ impl Parser {
 
             match expr {
                 Expr::Variable(var) => {
-                    return Ok(Expr::assignment(
-                        AssignmentTarget::new(AssignmentTargetType::Variable(var.name), equal.line),
-                        value,
-                    ));
+                    return Ok(Expr::assignment(AssignmentTarget::Variable(var), value));
                 }
                 _ => {
                     error_token(equal, "Invalid assignment target");
