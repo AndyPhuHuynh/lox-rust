@@ -20,3 +20,13 @@ pub fn error_token(token: Token, message: impl AsRef<str>) {
         );
     }
 }
+
+pub fn log_redefinition_error(name: &str, line: usize) {
+    error(
+        line,
+        format!(
+            "Attempting to redefine symbol '{}' which has already been previously defined",
+            name
+        ),
+    );
+}

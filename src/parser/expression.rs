@@ -18,6 +18,9 @@ impl Parser {
             let value = self.assignment()?;
 
             match expr {
+                Expr::Get(get) => {
+                    return Ok(Expr::set(*get.expr, get.name, value, get.line));
+                }
                 Expr::Variable(var) => {
                     return Ok(Expr::assignment(AssignmentTarget::Variable(var), value));
                 }
@@ -210,6 +213,9 @@ impl Parser {
         loop {
             if self.match_token_kind(&[TokenKind::LeftParen]) {
                 expr = self.finish_call(expr)?;
+            } else if self.match_token_kind(&[TokenKind::Dot]) {
+                let name = self.consume(TokenKind::Identifier, "Expect property name after '.'")?;
+                expr = Expr::get(expr, name.lexeme, name.line)
             } else {
                 break;
             }

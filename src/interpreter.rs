@@ -7,19 +7,20 @@ use crate::runtime::RuntimeResult;
 use crate::syntax_tree::statement::Stmt;
 
 pub struct Interpreter {
-    env: EnvRef,
+    pub globals: EnvRef,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Self {
-            env: EnvRef::with_enclosing(None),
+            globals: EnvRef::with_enclosing(None),
         }
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) -> RuntimeResult<()> {
+        let globals = self.globals.clone();
         for stmt in statements {
-            stmt.execute(&mut self.env)?
+            stmt.execute(self, &mut globals.clone())?
         }
         Ok(())
     }

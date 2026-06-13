@@ -1,0 +1,20 @@
+class Food {
+    eat() {
+        print a;
+        print "Eating food";
+    }
+}
+var a = "global";
+
+print Food;
+var instance = Food();
+print instance;
+
+instance.hello = 2;
+print instance.hello;
+
+instance.hello = instance.test = 10.75;
+print instance.hello;
+print instance.test;
+
+instance.eat();

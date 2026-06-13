@@ -1,29 +1,33 @@
+use crate::environment::EnvRef;
+use crate::runtime::value::{ClassRef, ClassRefExt, FunctionRef, FunctionRefExt};
 use crate::syntax_tree::expression::Expr;
-use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Display;
-use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
+    Block(Block),
+    Class(ClassDecl),
     Expr(Expr),
-    Function(Rc<RefCell<Function>>),
+    Function(FunctionDecl),
     If(If),
     Print(Print),
     Return(Return),
     While(While),
     Var(Var),
-    Block(Block),
 }
 
 impl Stmt {
-    pub fn expr(expr: Expr) -> Self {
-        Self::Expr(expr)
+    pub fn block(stmts: Vec<Stmt>) -> Self {
+        Self::Block(Block::new(stmts))
     }
 
-    pub fn function(name: String, params: Vec<String>, body: Vec<Stmt>, line: usize) -> Self {
-        Stmt::Function(Rc::new(RefCell::new(Function::new(
-            name, params, body, line,
-        ))))
+    pub fn class(name: String, methods: Vec<FunctionDecl>, line: usize) -> Self {
+        Self::Class(ClassDecl::new(name, methods, line))
+    }
+
+    pub fn expr(expr: Expr) -> Self {
+        Self::Expr(expr)
     }
 
     pub fn if_(cond: Expr, then: Stmt, else_: Option<Stmt>) -> Self {
@@ -45,22 +49,54 @@ impl Stmt {
     pub fn var(str: String, initializer: Option<Expr>, line: usize) -> Self {
         Self::Var(Var::new(str, initializer, line))
     }
+}
 
-    pub fn block(stmts: Vec<Stmt>) -> Self {
-        Self::Block(Block::new(stmts))
+#[derive(Debug, Clone)]
+pub struct Block {
+    pub stmts: Vec<Stmt>,
+}
+
+impl Block {
+    pub fn new(stmts: Vec<Stmt>) -> Self {
+        Self { stmts }
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Function {
+pub struct ClassDecl {
     pub name: String,
-    pub params: Vec<String>,
+    pub methods: Vec<FunctionDecl>,
+    pub line: usize,
+}
+
+impl ClassDecl {
+    pub fn new(name: String, methods: Vec<FunctionDecl>, line: usize) -> Self {
+        Self {
+            name,
+            methods,
+            line,
+        }
+    }
+
+    pub fn into_ref(self, closure: &mut EnvRef) -> ClassRef {
+        let mut methods: HashMap<String, FunctionRef> = HashMap::new();
+        for method in self.methods {
+            methods.insert(method.name.clone(), method.into_ref(closure));
+        }
+        ClassRef::new_class(self.name, methods, closure.clone())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct FunctionDecl {
+    pub name: String,
+    pub params: Vec<(String, usize)>,
     pub body: Vec<Stmt>,
     pub line: usize,
 }
 
-impl Function {
-    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, line: usize) -> Self {
+impl FunctionDecl {
+    pub fn new(name: String, params: Vec<(String, usize)>, body: Vec<Stmt>, line: usize) -> Self {
         Self {
             name,
             params,
@@ -68,9 +104,18 @@ impl Function {
             line,
         }
     }
+
+    pub fn into_ref(self, closure: &mut EnvRef) -> FunctionRef {
+        FunctionRef::new_func(
+            self.name.clone(),
+            self.params.into_iter().map(|(param, _)| param).collect(),
+            self.body,
+            closure.clone(),
+        )
+    }
 }
 
-impl Display for Function {
+impl Display for FunctionDecl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<fn {}>", self.name)
     }
@@ -145,16 +190,5 @@ impl Var {
             initializer,
             line,
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Block {
-    pub stmts: Vec<Stmt>,
-}
-
-impl Block {
-    pub fn new(stmts: Vec<Stmt>) -> Self {
-        Self { stmts }
     }
 }

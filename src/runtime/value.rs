@@ -1,6 +1,7 @@
 use crate::environment::EnvRef;
-use crate::syntax_tree::statement::Function;
+use crate::syntax_tree::statement::Stmt;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::rc::Rc;
 
@@ -10,10 +11,9 @@ pub enum RuntimeValue {
     Number(f64),
     String(String),
     Bool(bool),
-    Function {
-        func: Rc<RefCell<Function>>,
-        closure: EnvRef,
-    },
+    Function(FunctionRef),
+    Class(ClassRef),
+    Instance(InstanceRef),
 }
 
 impl RuntimeValue {
@@ -33,7 +33,9 @@ impl Display for RuntimeValue {
             RuntimeValue::Number(num) => write!(f, "{}", num),
             RuntimeValue::String(str) => write!(f, "{}", str),
             RuntimeValue::Bool(bool) => write!(f, "{}", bool),
-            RuntimeValue::Function { func, .. } => write!(f, "{}", func.borrow()),
+            RuntimeValue::Function(func) => write!(f, "{}", func.borrow()),
+            RuntimeValue::Class(class) => write!(f, "{}", class.borrow()),
+            RuntimeValue::Instance(instance) => write!(f, "{}", instance.borrow()),
         }
     }
 }
@@ -45,10 +47,129 @@ impl PartialEq for RuntimeValue {
             (RuntimeValue::Number(num1), RuntimeValue::Number(num2)) => num1 == num2,
             (RuntimeValue::String(str1), RuntimeValue::String(str2)) => str1 == str2,
             (RuntimeValue::Bool(bool1), RuntimeValue::Bool(bool2)) => bool1 == bool2,
-            (RuntimeValue::Function { func: a, .. }, RuntimeValue::Function { func: b, .. }) => {
-                Rc::ptr_eq(a, b)
-            }
+            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => Rc::ptr_eq(a, b),
+            (RuntimeValue::Class(a), RuntimeValue::Class(b)) => Rc::ptr_eq(a, b),
+            (RuntimeValue::Instance(a), RuntimeValue::Instance(b)) => Rc::ptr_eq(a, b),
             _ => false,
         }
+    }
+}
+
+pub type ClassRef = Rc<RefCell<Class>>;
+
+pub trait ClassRefExt {
+    fn new_class(name: String, methods: HashMap<String, FunctionRef>, closure: EnvRef) -> ClassRef;
+}
+
+impl ClassRefExt for ClassRef {
+    fn new_class(name: String, methods: HashMap<String, FunctionRef>, closure: EnvRef) -> ClassRef {
+        Rc::new(RefCell::new(Class::new(name, methods, closure)))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Class {
+    pub name: String,
+    pub methods: HashMap<String, FunctionRef>,
+    pub closure: EnvRef,
+}
+
+impl Class {
+    pub fn new(name: String, methods: HashMap<String, FunctionRef>, closure: EnvRef) -> Self {
+        Self {
+            name,
+            methods,
+            closure,
+        }
+    }
+}
+
+impl Display for Class {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<class {}>", self.name)
+    }
+}
+
+pub type FunctionRef = Rc<RefCell<Function>>;
+
+pub trait FunctionRefExt {
+    fn new_func(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self;
+}
+
+impl FunctionRefExt for FunctionRef {
+    fn new_func(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self {
+        Rc::new(RefCell::new(Function::new(name, params, body, closure)))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub name: String,
+    pub params: Vec<String>,
+    pub body: Vec<Stmt>,
+    pub closure: EnvRef,
+}
+
+impl Function {
+    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self {
+        Self {
+            name,
+            params,
+            body,
+            closure,
+        }
+    }
+}
+
+impl Display for Function {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<fn {}>", self.name)
+    }
+}
+
+pub type InstanceRef = Rc<RefCell<Instance>>;
+
+pub trait InstanceRefExt {
+    fn new_instance(class: ClassRef) -> Self;
+}
+
+impl InstanceRefExt for InstanceRef {
+    fn new_instance(class: ClassRef) -> Self {
+        Rc::new(RefCell::new(Instance::new(class)))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Instance {
+    class: ClassRef,
+    fields: HashMap<String, RuntimeValue>,
+}
+
+impl Instance {
+    pub fn new(class: ClassRef) -> Self {
+        Instance {
+            class,
+            fields: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, name: &str) -> Option<RuntimeValue> {
+        if let Some(value) = self.fields.get(name) {
+            return Some(value.clone());
+        }
+        if let Some(value) = self.class.borrow().methods.get(name) {
+            return Some(RuntimeValue::Function(value.clone()));
+        }
+        None
+    }
+
+    pub fn set(&mut self, name: &str, value: RuntimeValue) {
+        self.fields.insert(name.to_string(), value);
+    }
+}
+
+impl Display for Instance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<instance {}>", self.class.borrow().name)
     }
 }

@@ -71,7 +71,7 @@ fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
             return;
         }
     }
-
+    
     match interpreter.interpret(&statements) {
         Ok(_) => {}
         Err(err) => {

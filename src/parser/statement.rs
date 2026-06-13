@@ -1,17 +1,21 @@
 use crate::error::error_token;
 use crate::parser::{ParseResult, Parser};
 use crate::syntax_tree::expression::Expr;
-use crate::syntax_tree::statement::Stmt;
+use crate::syntax_tree::statement::{FunctionDecl, Stmt};
 use crate::token::TokenKind;
 
 impl Parser {
     pub(in crate::parser) fn declaration(&mut self) -> ParseResult<Stmt> {
+        if self.match_token_kind(&[TokenKind::Class]) {
+            return self.class_declaration();
+        }
         if self.match_token_kind(&[TokenKind::Fun]) {
-            return self.function_declaration("function");
+            return Ok(Stmt::Function(self.function_declaration("function")?));
         }
         if self.match_token_kind(&[TokenKind::Var]) {
             return self.var_declaration();
         }
+
         match self.statement() {
             Ok(stmt) => Ok(stmt),
             Err(error) => {
@@ -21,23 +25,34 @@ impl Parser {
         }
     }
 
-    fn function_declaration(&mut self, kind: &str) -> ParseResult<Stmt> {
+    fn class_declaration(&mut self) -> ParseResult<Stmt> {
+        let name = self.consume(TokenKind::Identifier, "Expect class name")?;
+        self.consume(TokenKind::LeftBrace, "Expect '{' after class name")?;
+
+        let mut methods: Vec<FunctionDecl> = Vec::new();
+        while !self.check(&TokenKind::RightBrace) && !self.is_at_end() {
+            methods.push(self.function_declaration("method")?);
+        }
+
+        self.consume(TokenKind::RightBrace, "Expect '}' after class body")?;
+        Ok(Stmt::class(name.lexeme, methods, name.line))
+    }
+
+    fn function_declaration(&mut self, kind: &str) -> ParseResult<FunctionDecl> {
         let name = self.consume(TokenKind::Identifier, &format!("Expect {kind} name"))?;
         self.consume(
             TokenKind::LeftParen,
             &format!("Expect '(' after {kind} name"),
         )?;
 
-        let mut params: Vec<String> = Vec::new();
+        let mut params: Vec<(String, usize)> = Vec::new();
         if !self.check(&TokenKind::RightParen) {
             loop {
                 if params.len() >= 255 {
                     error_token(self.peek(), "Cannot have more than 255 parameters");
                 }
-                params.push(
-                    self.consume(TokenKind::Identifier, "Expect parameter name")?
-                        .lexeme,
-                );
+                let param = self.consume(TokenKind::Identifier, "Expect parameter name")?;
+                params.push((param.lexeme, param.line));
                 if !self.match_token_kind(&[TokenKind::Comma]) {
                     break;
                 }
@@ -51,7 +66,7 @@ impl Parser {
         )?;
         let body = self.block()?;
 
-        Ok(Stmt::function(name.lexeme, params, body, name.line))
+        Ok(FunctionDecl::new(name.lexeme, params, body, name.line))
     }
 
     fn var_declaration(&mut self) -> ParseResult<Stmt> {

@@ -20,6 +20,17 @@ impl RuntimeException {
         }
     }
 
+    pub fn redefinition_error(symbol: &str, line: usize) -> RuntimeException {
+        RuntimeException::with_message(
+            format!(
+                "Attempting to redefine symbol '{}' which has already been previously defined",
+                symbol
+            )
+            .as_str(),
+        )
+        .at_line(line)
+    }
+
     pub fn return_value(value: RuntimeValue, line: usize) -> Self {
         Self::Return {
             value,
@@ -46,15 +57,4 @@ impl RuntimeException {
         }
         self
     }
-}
-
-pub fn redefinition_error(symbol: &str, line: usize) -> RuntimeException {
-    RuntimeException::with_message(
-        format!(
-            "Attempting to redefine symbol '{}' which has already been previously defined",
-            symbol
-        )
-        .as_str(),
-    )
-    .at_line(line)
 }

@@ -7,6 +7,8 @@ pub enum Expr {
     Binary(BinaryExpr),
     Logical(LogicalExpr),
     Call(Call),
+    Get(Get),
+    Set(Set),
     Grouping(GroupingExpr),
     Variable(Variable),
     Assignment(Assignment),
@@ -41,6 +43,14 @@ impl Expr {
         Expr::Logical(LogicalExpr::new(left, operator, right))
     }
 
+    pub fn get(expr: Expr, name: String, line: usize) -> Expr {
+        Expr::Get(Get::new(expr, name, line))
+    }
+
+    pub fn set(expr: Expr, name: String, value: Expr, line: usize) -> Expr {
+        Expr::Set(Set::new(expr, name, value, line))
+    }
+
     pub fn grouping(expression: Expr) -> Expr {
         Expr::Grouping(GroupingExpr::new(expression))
     }
@@ -66,6 +76,8 @@ impl Display for Expr {
             Expr::Binary(expr) => write!(f, "{expr}"),
             Expr::Logical(expr) => write!(f, "{expr}"),
             Expr::Call(expr) => write!(f, "{expr}"),
+            Expr::Get(expr) => write!(f, "{expr}"),
+            Expr::Set(expr) => write!(f, "{expr}"),
             Expr::Grouping(expr) => write!(f, "{expr}"),
             Expr::Variable(expr) => write!(f, "{expr}"),
             Expr::Assignment(expr) => write!(f, "{expr}"),
@@ -280,6 +292,54 @@ impl Display for Call {
             write!(f, " {}", arg)?;
         }
         write!(f, ")")
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Get {
+    pub expr: Box<Expr>,
+    pub name: String,
+    pub line: usize,
+}
+
+impl Get {
+    pub fn new(expr: Expr, name: String, line: usize) -> Self {
+        Self {
+            expr: Box::new(expr),
+            name,
+            line,
+        }
+    }
+}
+
+impl Display for Get {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(get {}, {})", self.expr, self.line)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Set {
+    pub object: Box<Expr>,
+    pub name: String,
+    pub value: Box<Expr>,
+    pub line: usize,
+}
+
+impl Set {
+    pub fn new(expr: Expr, name: String, value: Expr, line: usize) -> Self {
+        Self {
+            object: Box::new(expr),
+            name,
+            value: Box::new(value),
+            line,
+        }
+    }
+}
+
+impl Display for Set {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(set {}.{}, {})", self.object, self.name, self.value)
     }
 }
 

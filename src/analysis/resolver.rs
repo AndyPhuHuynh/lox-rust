@@ -1,16 +1,18 @@
-use crate::error::error;
+use crate::error::{error, log_redefinition_error};
 use crate::syntax_tree::expression::{
-    Assignment, AssignmentTarget, BinaryExpr, Call, Expr, GroupingExpr, LogicalExpr, UnaryExpr,
-    Variable,
+    Assignment, AssignmentTarget, BinaryExpr, Call, Expr, Get, GroupingExpr, LogicalExpr, Set,
+    UnaryExpr, Variable,
 };
-use crate::syntax_tree::statement::{Block, Function, If, Print, Return, Stmt, Var, While};
-use std::cell::RefCell;
-use std::collections::HashMap;
+use crate::syntax_tree::statement::{
+    Block, ClassDecl, FunctionDecl, If, Print, Return, Stmt, Var, While,
+};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum FunctionType {
     None,
     Function,
+    Method,
 }
 
 pub struct Resolver {
@@ -53,13 +55,7 @@ impl Resolver {
             None => {}
             Some(scope) => {
                 if scope.contains_key(name) {
-                    error(
-                        line,
-                        format!(
-                            "Attempting to redefine symbol '{}' which has already been previously defined",
-                            name
-                        ),
-                    );
+                    log_redefinition_error(name, line);
                     self.error_encountered = true;
                 }
                 scope.insert(name.to_string(), false);
@@ -81,6 +77,8 @@ impl Resolver {
 impl Resolver {
     fn resolve_statement(&mut self, stmt: &mut Stmt) {
         match stmt {
+            Stmt::Block(block) => self.resolve_block_stmt(block),
+            Stmt::Class(class) => self.resolve_class_stmt(class),
             Stmt::Expr(expr) => self.resolve_expression(expr),
             Stmt::Function(func) => self.resolve_function_stmt(func),
             Stmt::If(if_) => self.resolve_if_stmt(if_),
@@ -88,13 +86,35 @@ impl Resolver {
             Stmt::Return(return_) => self.resolve_return_stmt(return_),
             Stmt::While(while_) => self.resolve_while_stmt(while_),
             Stmt::Var(var) => self.resolve_var_stmt(var),
-            Stmt::Block(block) => self.resolve_block_stmt(block),
         }
     }
 
-    fn resolve_function_stmt(&mut self, func: &RefCell<Function>) {
-        self.declare_variable(&func.borrow().name, func.borrow().line);
-        self.define_variable(&func.borrow().name);
+    fn resolve_block_stmt(&mut self, block: &mut Block) {
+        self.begin_scope();
+        for stmt in &mut block.stmts {
+            self.resolve_statement(stmt);
+        }
+        self.end_scope();
+    }
+
+    fn resolve_class_stmt(&mut self, class: &mut ClassDecl) {
+        self.declare_variable(&class.name, class.line);
+        self.define_variable(&class.name);
+
+        let mut encountered = HashSet::<String>::new();
+        for method in &mut class.methods {
+            if encountered.contains(&method.name) {
+                log_redefinition_error(&method.name, method.line);
+                self.error_encountered = true;
+            }
+            encountered.insert(method.name.clone());
+            self.resolve_function(method, FunctionType::Method);
+        }
+    }
+
+    fn resolve_function_stmt(&mut self, func: &mut FunctionDecl) {
+        self.declare_variable(&func.name, func.line);
+        self.define_variable(&func.name);
         self.resolve_function(func, FunctionType::Function);
     }
 
@@ -133,24 +153,16 @@ impl Resolver {
         self.define_variable(&var.name);
     }
 
-    fn resolve_block_stmt(&mut self, block: &mut Block) {
-        self.begin_scope();
-        for stmt in &mut block.stmts {
-            self.resolve_statement(stmt);
-        }
-        self.end_scope();
-    }
-
-    fn resolve_function(&mut self, func: &RefCell<Function>, fn_type: FunctionType) {
+    fn resolve_function(&mut self, func: &mut FunctionDecl, fn_type: FunctionType) {
         let cached_type = self.current_fn_type;
         self.current_fn_type = fn_type;
 
         self.begin_scope();
-        for param in &func.borrow().params {
-            self.declare_variable(param, func.borrow().line);
-            self.define_variable(param);
+        for param in &func.params {
+            self.declare_variable(&param.0, param.1);
+            self.define_variable(&param.0);
         }
-        for stmt in &mut func.borrow_mut().body {
+        for stmt in &mut func.body {
             self.resolve_statement(stmt);
         }
         self.end_scope();
@@ -168,6 +180,8 @@ impl Resolver {
             Expr::Binary(binary) => self.resolve_binary_expr(binary),
             Expr::Logical(logical) => self.resolve_logical_expr(logical),
             Expr::Call(call) => self.resolve_call_expr(call),
+            Expr::Get(get) => self.resolve_get_expr(get),
+            Expr::Set(set) => self.resolve_set_expr(set),
             Expr::Grouping(grouping) => self.resolve_grouping_expr(grouping),
             Expr::Variable(variable) => self.resolve_variable_expr(variable),
             Expr::Assignment(assignment) => self.resolve_assignment_expr(assignment),
@@ -193,6 +207,15 @@ impl Resolver {
         for arg in &mut call_expr.args {
             self.resolve_expression(arg);
         }
+    }
+
+    fn resolve_get_expr(&mut self, get_expr: &mut Get) {
+        self.resolve_expression(&mut get_expr.expr);
+    }
+
+    fn resolve_set_expr(&mut self, set_expr: &mut Set) {
+        self.resolve_expression(&mut set_expr.value);
+        self.resolve_expression(&mut set_expr.object);
     }
 
     fn resolve_grouping_expr(&mut self, grouping_expr: &mut GroupingExpr) {

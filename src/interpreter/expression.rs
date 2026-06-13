@@ -1,34 +1,37 @@
 use crate::environment::EnvRef;
+use crate::interpreter::Interpreter;
 use crate::runtime::call::Callable;
 use crate::runtime::error::RuntimeException;
 use crate::runtime::value::RuntimeValue;
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
 use crate::syntax_tree::expression::{
-    Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, GroupingExpr, Literal,
-    LogicalExpr, LogicalOp, UnaryExpr, UnaryOp, Variable,
+    Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, Get, GroupingExpr, Literal,
+    LogicalExpr, LogicalOp, Set, UnaryExpr, UnaryOp, Variable,
 };
 
 pub trait Evaluate {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue>;
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue>;
 }
 
 impl Evaluate for Expr {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         match self {
-            Expr::Literal(expr) => expr.evaluate(env),
-            Expr::Unary(expr) => expr.evaluate(env),
-            Expr::Binary(expr) => expr.evaluate(env),
-            Expr::Logical(expr) => expr.evaluate(env),
-            Expr::Call(expr) => expr.evaluate(env),
-            Expr::Grouping(expr) => expr.evaluate(env),
-            Expr::Variable(expr) => expr.evaluate(env),
-            Expr::Assignment(expr) => expr.evaluate(env),
+            Expr::Literal(expr) => expr.evaluate(interpreter, env),
+            Expr::Unary(expr) => expr.evaluate(interpreter, env),
+            Expr::Binary(expr) => expr.evaluate(interpreter, env),
+            Expr::Logical(expr) => expr.evaluate(interpreter, env),
+            Expr::Call(expr) => expr.evaluate(interpreter, env),
+            Expr::Get(expr) => expr.evaluate(interpreter, env),
+            Expr::Set(expr) => expr.evaluate(interpreter, env),
+            Expr::Grouping(expr) => expr.evaluate(interpreter, env),
+            Expr::Variable(expr) => expr.evaluate(interpreter, env),
+            Expr::Assignment(expr) => expr.evaluate(interpreter, env),
         }
     }
 }
 
 impl Evaluate for Literal {
-    fn evaluate(&self, _: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(&self, _: &mut Interpreter, _: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         match &self {
             Literal::Number(num) => Ok(RuntimeValue::Number(*num)),
             Literal::String(str) => Ok(RuntimeValue::String(str.clone())),
@@ -39,8 +42,8 @@ impl Evaluate for Literal {
 }
 
 impl Evaluate for UnaryExpr {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        let right = self.expr.evaluate(env)?;
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let right = self.expr.evaluate(interpreter, env)?;
 
         match self.op_token.operator {
             UnaryOp::LogicalNot => Ok(right.logical_not()),
@@ -50,9 +53,9 @@ impl Evaluate for UnaryExpr {
 }
 
 impl Evaluate for BinaryExpr {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        let left = self.left.evaluate(env)?;
-        let right = self.right.evaluate(env)?;
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let left = self.left.evaluate(interpreter, env)?;
+        let right = self.right.evaluate(interpreter, env)?;
 
         match self.op_token.operator {
             BinaryOp::Add => left.add(right),
@@ -71,39 +74,74 @@ impl Evaluate for BinaryExpr {
 }
 
 impl Evaluate for LogicalExpr {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        let left = self.left.evaluate(env)?;
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let left = self.left.evaluate(interpreter, env)?;
 
         match self.op {
             LogicalOp::Or if left.is_truthy() => Ok(left),
             LogicalOp::And if !left.is_truthy() => Ok(left),
-            _ => self.right.evaluate(env),
+            _ => self.right.evaluate(interpreter, env),
         }
     }
 }
 
 impl Evaluate for Call {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        let callee = self.callee.evaluate(env)?;
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let callee = self.callee.evaluate(interpreter, env)?;
         let arguments = self
             .args
             .iter()
-            .map(|arg| arg.evaluate(env))
+            .map(|arg| arg.evaluate(interpreter, env))
             .collect::<RuntimeResult<Vec<_>>>()?;
-        callee.call(&arguments, env).at_line(self.line)
+        callee.call(&arguments, interpreter, env).at_line(self.line)
+    }
+}
+
+impl Evaluate for Get {
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let object = self.expr.evaluate(interpreter, env)?;
+        match object {
+            RuntimeValue::Instance(instance) => instance.borrow().get(&self.name).ok_or(
+                RuntimeException::with_message(&format!("Undefined property '{}'", self.name))
+                    .at_line(self.line),
+            ),
+            _ => Err(RuntimeException::with_message(&format!(
+                "Unable to access property '{}'. Only instances have properties",
+                self.name
+            ))
+            .at_line(self.line)),
+        }
+    }
+}
+
+impl Evaluate for Set {
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let object = self.object.evaluate(interpreter, env)?;
+        match object {
+            RuntimeValue::Instance(instance) => {
+                let value = self.value.evaluate(interpreter, env)?;
+                instance.borrow_mut().set(&self.name, value.clone());
+                Ok(value)
+            }
+            _ => Err(RuntimeException::with_message(&format!(
+                "Unable to set property '{}'. Only instances have properties",
+                self.name
+            ))
+            .at_line(self.line)),
+        }
     }
 }
 
 impl Evaluate for GroupingExpr {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        self.expression.evaluate(env)
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        self.expression.evaluate(interpreter, env)
     }
 }
 
 impl Evaluate for Variable {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         match self.local_distance {
-            None => env.get(self.name.as_str()),
+            None => interpreter.globals.get(self.name.as_str()),
             Some(distance) => env.get_at(self.name.as_str(), distance),
         }
         .ok_or(RuntimeException::with_message(
@@ -113,12 +151,12 @@ impl Evaluate for Variable {
 }
 
 impl Evaluate for Assignment {
-    fn evaluate(&self, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         match &self.target {
             AssignmentTarget::Variable(var) => {
-                let rhs_value = self.value.evaluate(env)?;
+                let rhs_value = self.value.evaluate(interpreter, env)?;
                 match var.local_distance {
-                    None => env.assign(var.name.clone(), rhs_value.clone()),
+                    None => interpreter.globals.assign(var.name.clone(), rhs_value.clone()),
                     Some(distance) => env.assign_at(var.name.clone(), rhs_value.clone(), distance),
                 }
                 .ok_or(RuntimeException::with_message(

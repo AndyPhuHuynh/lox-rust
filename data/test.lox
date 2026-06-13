@@ -1,0 +1,11 @@
+fun Recur(n) {
+    if (n <= 1) {
+        print "Stopping!";
+        print n;
+    } else {
+        print n;
+        Recur(n - 1);
+    }
+}
+
+Recur(3);
