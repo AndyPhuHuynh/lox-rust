@@ -1,11 +1,6 @@
-fun Recur(n) {
-    if (n <= 1) {
-        print "Stopping!";
-        print n;
-    } else {
-        print n;
-        Recur(n - 1);
-    }
+fun fib(n) {
+    if (n < 2) return n;
+    return fib(n - 1) + fib(n - 2);
 }
 
-Recur(3);
+print fib(30);
