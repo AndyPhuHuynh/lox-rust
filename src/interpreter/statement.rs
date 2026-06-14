@@ -1,6 +1,6 @@
 use crate::environment::EnvRef;
-use crate::interpreter::expression::Evaluate;
 use crate::interpreter::Interpreter;
+use crate::interpreter::expression::Evaluate;
 use crate::runtime::RuntimeResult;
 use crate::runtime::error::RuntimeException;
 use crate::runtime::value::{FunctionRef, RuntimeValue};
@@ -69,6 +69,7 @@ impl Execute for FunctionDecl {
                     .map(|(param, _)| param)
                     .collect(),
                 self.body.clone(),
+                false,
                 env.clone(),
             )),
         ) {

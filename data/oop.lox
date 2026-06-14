@@ -1,21 +1,23 @@
 class Food {
+    init(favorite, print_msg) {
+        this.favorite = favorite;
+
+        if (!print_msg) {
+            return;
+        }
+        print "Init with food: " + favorite;
+    }
+
     eat() {
-        print a;
-        print this;
-        print "Eating food";
+        print "Eating " + this.favorite;
     }
 }
-var a = "global";
 
-print Food;
-var instance = Food();
-print instance;
+var inst = Food("sushi", true);
+var ref = inst.init("pizza", false);
+ref.init("burger", false);
 
-instance.hello = 2;
-print instance.hello;
+inst.eat();
 
-instance.hello = instance.test = 10.75;
-print instance.hello;
-print instance.test;
-
-instance.eat();
+inst.init("french fries", false);
+ref.eat();

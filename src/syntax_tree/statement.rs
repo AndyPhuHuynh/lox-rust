@@ -81,7 +81,11 @@ impl ClassDecl {
     pub fn into_ref(self, closure: &mut EnvRef) -> ClassRef {
         let mut methods: HashMap<String, FunctionRef> = HashMap::new();
         for method in self.methods {
-            methods.insert(method.name.clone(), method.into_ref(closure));
+            let is_initializer = method.name == "init";
+            methods.insert(
+                method.name.clone(),
+                method.into_ref(is_initializer, closure),
+            );
         }
         ClassRef::new_class(self.name, methods, closure.clone())
     }
@@ -105,11 +109,12 @@ impl FunctionDecl {
         }
     }
 
-    pub fn into_ref(self, closure: &mut EnvRef) -> FunctionRef {
+    pub fn into_ref(self, is_initializer: bool, closure: &mut EnvRef) -> FunctionRef {
         FunctionRef::new(
             self.name.clone(),
             self.params.into_iter().map(|(param, _)| param).collect(),
             self.body,
+            is_initializer,
             closure.clone(),
         )
     }

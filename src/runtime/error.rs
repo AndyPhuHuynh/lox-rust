@@ -31,6 +31,12 @@ impl RuntimeException {
         .at_line(line)
     }
 
+    pub fn arity_error(func_name: &str, func_len: usize, arg_len: usize) -> RuntimeException {
+        RuntimeException::with_message(&format!(
+            "Expected {func_len} arguments but got {arg_len} for call to {func_name}",
+        ))
+    }
+
     pub fn return_value(value: RuntimeValue, line: usize) -> Self {
         Self::Return {
             value,

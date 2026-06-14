@@ -12,12 +12,20 @@ use std::collections::{HashMap, HashSet};
 enum FunctionType {
     None,
     Function,
+    Initializer,
     Method,
+}
+
+#[derive(Debug, Copy, Clone)]
+enum ClassType {
+    None,
+    Class,
 }
 
 pub struct Resolver {
     error_encountered: bool,
     current_fn_type: FunctionType,
+    current_class_type: ClassType,
     scopes: Vec<HashMap<String, bool>>,
 }
 
@@ -26,6 +34,7 @@ impl Resolver {
         Resolver {
             error_encountered: false,
             current_fn_type: FunctionType::None,
+            current_class_type: ClassType::None,
             scopes: vec![HashMap::new()],
         }
     }
@@ -98,11 +107,17 @@ impl Resolver {
     }
 
     fn resolve_class_stmt(&mut self, class: &mut ClassDecl) {
+        let enclosing_class = self.current_class_type;
+        self.current_class_type = ClassType::Class;
+
         self.declare_variable(&class.name, class.line);
         self.define_variable(&class.name);
 
         self.begin_scope();
-        self.scopes.last_mut().unwrap().insert("this".to_string(), true);
+        self.scopes
+            .last_mut()
+            .unwrap()
+            .insert("this".to_string(), true);
 
         let mut encountered = HashSet::<String>::new();
         for method in &mut class.methods {
@@ -111,10 +126,17 @@ impl Resolver {
                 self.error_encountered = true;
             }
             encountered.insert(method.name.clone());
-            self.resolve_function(method, FunctionType::Method);
+            let func_type = if method.name == "init" {
+                FunctionType::Initializer
+            } else {
+                FunctionType::Method
+            };
+
+            self.resolve_function(method, func_type);
         }
 
         self.end_scope();
+        self.current_class_type = enclosing_class;
     }
 
     fn resolve_function_stmt(&mut self, func: &mut FunctionDecl) {
@@ -138,6 +160,14 @@ impl Resolver {
     fn resolve_return_stmt(&mut self, return_stmt: &mut Return) {
         if self.current_fn_type == FunctionType::None {
             error(return_stmt.line, "Cannot return from top-level code");
+            self.error_encountered = true;
+        }
+        if self.current_fn_type == FunctionType::Initializer && !return_stmt.expr.is_none() {
+            error(
+                return_stmt.line,
+                "Cannot return a value from within an initializer",
+            );
+            self.error_encountered = true;
         }
 
         if let Some(expr) = &mut return_stmt.expr {
@@ -187,7 +217,7 @@ impl Resolver {
             Expr::Call(call) => self.resolve_call_expr(call),
             Expr::Get(get) => self.resolve_get_expr(get),
             Expr::Set(set) => self.resolve_set_expr(set),
-            Expr::This(this) => self.resolve_local_variable(this),
+            Expr::This(this) => self.resolve_this_expr(this),
             Expr::Grouping(grouping) => self.resolve_grouping_expr(grouping),
             Expr::Variable(variable) => self.resolve_variable_expr(variable),
             Expr::Assignment(assignment) => self.resolve_assignment_expr(assignment),
@@ -222,6 +252,15 @@ impl Resolver {
     fn resolve_set_expr(&mut self, set_expr: &mut Set) {
         self.resolve_expression(&mut set_expr.value);
         self.resolve_expression(&mut set_expr.object);
+    }
+
+    fn resolve_this_expr(&mut self, this_expr: &mut Variable) {
+        if self.current_fn_type == FunctionType::None {
+            error(this_expr.line, "Cannot use 'this' outside of a class");
+            self.error_encountered = true;
+            return;
+        }
+        self.resolve_variable_expr(this_expr);
     }
 
     fn resolve_grouping_expr(&mut self, grouping_expr: &mut GroupingExpr) {

@@ -97,11 +97,19 @@ pub struct FunctionRef {
 }
 
 impl FunctionRef {
-    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self {
+    pub fn new(
+        name: String,
+        params: Vec<String>,
+        body: Vec<Stmt>,
+        is_initializer: bool,
+        closure: EnvRef,
+    ) -> Self {
         Self {
-            func: Rc::new(RefCell::new(Function::new(name,
+            func: Rc::new(RefCell::new(Function::new(
+                name,
                 params,
-                body
+                body,
+                is_initializer,
             ))),
             closure,
         }
@@ -135,14 +143,16 @@ pub struct Function {
     pub name: String,
     pub params: Vec<String>,
     pub body: Vec<Stmt>,
+    pub is_initializer: bool,
 }
 
 impl Function {
-    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>) -> Self {
+    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, is_initializer: bool) -> Self {
         Self {
             name,
             params,
             body,
+            is_initializer,
         }
     }
 }

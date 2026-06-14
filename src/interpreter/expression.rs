@@ -10,11 +10,19 @@ use crate::syntax_tree::expression::{
 };
 
 pub trait Evaluate {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue>;
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue>;
 }
 
 impl Evaluate for Expr {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         match self {
             Expr::Literal(expr) => expr.evaluate(interpreter, env),
             Expr::Unary(expr) => expr.evaluate(interpreter, env),
@@ -43,7 +51,11 @@ impl Evaluate for Literal {
 }
 
 impl Evaluate for UnaryExpr {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         let right = self.expr.evaluate(interpreter, env)?;
 
         match self.op_token.operator {
@@ -54,7 +66,11 @@ impl Evaluate for UnaryExpr {
 }
 
 impl Evaluate for BinaryExpr {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         let left = self.left.evaluate(interpreter, env)?;
         let right = self.right.evaluate(interpreter, env)?;
 
@@ -75,7 +91,11 @@ impl Evaluate for BinaryExpr {
 }
 
 impl Evaluate for LogicalExpr {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         let left = self.left.evaluate(interpreter, env)?;
 
         match self.op {
@@ -87,7 +107,11 @@ impl Evaluate for LogicalExpr {
 }
 
 impl Evaluate for Call {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         let callee = self.callee.evaluate(interpreter, env)?;
         let arguments = self
             .args
@@ -99,7 +123,11 @@ impl Evaluate for Call {
 }
 
 impl Evaluate for Get {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         let object = self.expr.evaluate(interpreter, env)?;
         match object {
             RuntimeValue::Instance(instance) => instance.get(&self.name).ok_or(
@@ -116,7 +144,11 @@ impl Evaluate for Get {
 }
 
 impl Evaluate for Set {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         let object = self.object.evaluate(interpreter, env)?;
         match object {
             RuntimeValue::Instance(instance) => {
@@ -134,13 +166,21 @@ impl Evaluate for Set {
 }
 
 impl Evaluate for GroupingExpr {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         self.expression.evaluate(interpreter, env)
     }
 }
 
 impl Evaluate for Variable {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         match self.local_distance {
             None => interpreter.globals.get(self.name.as_str()),
             Some(distance) => env.get_at(self.name.as_str(), distance),
@@ -152,12 +192,18 @@ impl Evaluate for Variable {
 }
 
 impl Evaluate for Assignment {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         match &self.target {
             AssignmentTarget::Variable(var) => {
                 let rhs_value = self.value.evaluate(interpreter, env)?;
                 match var.local_distance {
-                    None => interpreter.globals.assign(var.name.clone(), rhs_value.clone()),
+                    None => interpreter
+                        .globals
+                        .assign(var.name.clone(), rhs_value.clone()),
                     Some(distance) => env.assign_at(var.name.clone(), rhs_value.clone(), distance),
                 }
                 .ok_or(RuntimeException::with_message(
