@@ -1,9 +1,16 @@
-    fun a() {
-        b();
+fun GetClass() {
+    var a = 2;
+
+    class Inner {
+        printA() {
+            print a;
+        }
     }
 
-    fun b() {
-        print "b";
-    }
+    return Inner;
+}
 
-    a();
+var a = "override";
+var c = GetClass();
+var inst = c();
+inst.printA();

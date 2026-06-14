@@ -23,21 +23,21 @@ impl Callable for RuntimeValue {
 
 impl Callable for FunctionRef {
     fn call(self, args: &[RuntimeValue], interpreter: &mut Interpreter, _: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
-        if args.len() != self.borrow().params.len() {
+        if args.len() != self.func.borrow().params.len() {
             return Err(RuntimeException::with_message(&format!(
                 "Expected {} arguments but got {} for call to {}",
-                self.borrow().params.len(),
+                self.func.borrow().params.len(),
                 args.len(),
-                self.borrow().name
+                self.func.borrow().name
             )));
         }
-        let mut new_env = EnvRef::with_enclosing(Some(self.borrow().closure.clone()));
+        let mut new_env = EnvRef::with_enclosing(Some(self.closure.clone()));
 
         for i in 0..args.len() {
-            new_env.define(self.borrow().params[i].clone(), args[i].clone());
+            new_env.define(self.func.borrow().params[i].clone(), args[i].clone());
         }
 
-        for stmt in &self.borrow().body {
+        for stmt in &self.func.borrow().body {
             match stmt.execute(interpreter, &mut new_env) {
                 Ok(_) => {}
                 Err(RuntimeException::Return { value, line: _line }) => return Ok(value),

@@ -249,6 +249,7 @@ impl Parser {
             TokenType::Nil => Ok(Expr::literal_nil()),
             TokenType::Number(num) => Ok(Expr::literal_num(num)),
             TokenType::String(str) => Ok(Expr::literal_str(str.as_str())),
+            TokenType::This => Ok(Expr::this("this".to_string(), token.line)),
             TokenType::LeftParen => {
                 let expr = self.expression()?;
                 self.consume(TokenKind::RightParen, "Expect ')' after expression.")?;

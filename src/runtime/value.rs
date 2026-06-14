@@ -33,7 +33,7 @@ impl Display for RuntimeValue {
             RuntimeValue::Number(num) => write!(f, "{}", num),
             RuntimeValue::String(str) => write!(f, "{}", str),
             RuntimeValue::Bool(bool) => write!(f, "{}", bool),
-            RuntimeValue::Function(func) => write!(f, "{}", func.borrow()),
+            RuntimeValue::Function(func) => write!(f, "{}", func),
             RuntimeValue::Class(class) => write!(f, "{}", class.borrow()),
             RuntimeValue::Instance(instance) => write!(f, "{}", instance.borrow()),
         }
@@ -47,7 +47,7 @@ impl PartialEq for RuntimeValue {
             (RuntimeValue::Number(num1), RuntimeValue::Number(num2)) => num1 == num2,
             (RuntimeValue::String(str1), RuntimeValue::String(str2)) => str1 == str2,
             (RuntimeValue::Bool(bool1), RuntimeValue::Bool(bool2)) => bool1 == bool2,
-            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => Rc::ptr_eq(a, b),
+            (RuntimeValue::Function(a), RuntimeValue::Function(b)) => a == b,
             (RuntimeValue::Class(a), RuntimeValue::Class(b)) => Rc::ptr_eq(a, b),
             (RuntimeValue::Instance(a), RuntimeValue::Instance(b)) => Rc::ptr_eq(a, b),
             _ => false,
@@ -90,15 +90,43 @@ impl Display for Class {
     }
 }
 
-pub type FunctionRef = Rc<RefCell<Function>>;
-
-pub trait FunctionRefExt {
-    fn new_func(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self;
+#[derive(Debug, Clone)]
+pub struct FunctionRef {
+    pub func: Rc<RefCell<Function>>,
+    pub closure: EnvRef,
 }
 
-impl FunctionRefExt for FunctionRef {
-    fn new_func(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self {
-        Rc::new(RefCell::new(Function::new(name, params, body, closure)))
+impl FunctionRef {
+    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self {
+        Self {
+            func: Rc::new(RefCell::new(Function::new(name,
+                params,
+                body
+            ))),
+            closure,
+        }
+    }
+
+    pub fn bind(self, instance: InstanceRef) -> Self {
+        let new_env = EnvRef::with_enclosing(Some(self.closure.clone()));
+        new_env.define("this".to_string(), RuntimeValue::Instance(instance));
+
+        Self {
+            func: self.func,
+            closure: new_env,
+        }
+    }
+}
+
+impl PartialEq for FunctionRef {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.func, &other.func) && self.closure == other.closure
+    }
+}
+
+impl Display for FunctionRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<fn {}>", self.func.borrow())
     }
 }
 
@@ -107,16 +135,14 @@ pub struct Function {
     pub name: String,
     pub params: Vec<String>,
     pub body: Vec<Stmt>,
-    pub closure: EnvRef,
 }
 
 impl Function {
-    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>, closure: EnvRef) -> Self {
+    pub fn new(name: String, params: Vec<String>, body: Vec<Stmt>) -> Self {
         Self {
             name,
             params,
             body,
-            closure,
         }
     }
 }
@@ -131,11 +157,22 @@ pub type InstanceRef = Rc<RefCell<Instance>>;
 
 pub trait InstanceRefExt {
     fn new_instance(class: ClassRef) -> Self;
+    fn get(&self, name: &str) -> Option<RuntimeValue>;
 }
 
 impl InstanceRefExt for InstanceRef {
     fn new_instance(class: ClassRef) -> Self {
         Rc::new(RefCell::new(Instance::new(class)))
+    }
+
+    fn get(&self, name: &str) -> Option<RuntimeValue> {
+        if let Some(value) = self.borrow().fields.get(name) {
+            return Some(value.clone());
+        }
+        if let Some(value) = self.borrow().class.borrow().methods.get(name) {
+            return Some(RuntimeValue::Function(value.clone().bind(self.clone())));
+        }
+        None
     }
 }
 
@@ -151,16 +188,6 @@ impl Instance {
             class,
             fields: HashMap::new(),
         }
-    }
-
-    pub fn get(&self, name: &str) -> Option<RuntimeValue> {
-        if let Some(value) = self.fields.get(name) {
-            return Some(value.clone());
-        }
-        if let Some(value) = self.class.borrow().methods.get(name) {
-            return Some(RuntimeValue::Function(value.clone()));
-        }
-        None
     }
 
     pub fn set(&mut self, name: &str, value: RuntimeValue) {

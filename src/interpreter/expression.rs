@@ -2,7 +2,7 @@ use crate::environment::EnvRef;
 use crate::interpreter::Interpreter;
 use crate::runtime::call::Callable;
 use crate::runtime::error::RuntimeException;
-use crate::runtime::value::RuntimeValue;
+use crate::runtime::value::{InstanceRefExt, RuntimeValue};
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
 use crate::syntax_tree::expression::{
     Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, Get, GroupingExpr, Literal,
@@ -23,6 +23,7 @@ impl Evaluate for Expr {
             Expr::Call(expr) => expr.evaluate(interpreter, env),
             Expr::Get(expr) => expr.evaluate(interpreter, env),
             Expr::Set(expr) => expr.evaluate(interpreter, env),
+            Expr::This(expr) => expr.evaluate(interpreter, env),
             Expr::Grouping(expr) => expr.evaluate(interpreter, env),
             Expr::Variable(expr) => expr.evaluate(interpreter, env),
             Expr::Assignment(expr) => expr.evaluate(interpreter, env),
@@ -101,7 +102,7 @@ impl Evaluate for Get {
     fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
         let object = self.expr.evaluate(interpreter, env)?;
         match object {
-            RuntimeValue::Instance(instance) => instance.borrow().get(&self.name).ok_or(
+            RuntimeValue::Instance(instance) => instance.get(&self.name).ok_or(
                 RuntimeException::with_message(&format!("Undefined property '{}'", self.name))
                     .at_line(self.line),
             ),

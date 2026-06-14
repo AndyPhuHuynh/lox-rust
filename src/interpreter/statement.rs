@@ -3,7 +3,7 @@ use crate::interpreter::expression::Evaluate;
 use crate::interpreter::Interpreter;
 use crate::runtime::RuntimeResult;
 use crate::runtime::error::RuntimeException;
-use crate::runtime::value::{FunctionRef, FunctionRefExt, RuntimeValue};
+use crate::runtime::value::{FunctionRef, RuntimeValue};
 use crate::syntax_tree::expression::Expr;
 use crate::syntax_tree::statement::{
     Block, ClassDecl, FunctionDecl, If, Print, Return, Stmt, Var, While,
@@ -61,7 +61,7 @@ impl Execute for FunctionDecl {
     fn execute(&self, _: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<()> {
         match env.define(
             self.name.clone(),
-            RuntimeValue::Function(FunctionRef::new_func(
+            RuntimeValue::Function(FunctionRef::new(
                 self.name.clone(),
                 self.params
                     .clone()

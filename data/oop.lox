@@ -1,6 +1,7 @@
 class Food {
     eat() {
         print a;
+        print this;
         print "Eating food";
     }
 }

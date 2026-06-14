@@ -9,6 +9,7 @@ pub enum Expr {
     Call(Call),
     Get(Get),
     Set(Set),
+    This(Variable),
     Grouping(GroupingExpr),
     Variable(Variable),
     Assignment(Assignment),
@@ -51,6 +52,10 @@ impl Expr {
         Expr::Set(Set::new(expr, name, value, line))
     }
 
+    pub fn this(name: String, line: usize) -> Expr {
+        Expr::This(Variable::new(name, line))
+    }
+
     pub fn grouping(expression: Expr) -> Expr {
         Expr::Grouping(GroupingExpr::new(expression))
     }
@@ -78,6 +83,7 @@ impl Display for Expr {
             Expr::Call(expr) => write!(f, "{expr}"),
             Expr::Get(expr) => write!(f, "{expr}"),
             Expr::Set(expr) => write!(f, "{expr}"),
+            Expr::This(_) => write!(f, "(this)"),
             Expr::Grouping(expr) => write!(f, "{expr}"),
             Expr::Variable(expr) => write!(f, "{expr}"),
             Expr::Assignment(expr) => write!(f, "{expr}"),

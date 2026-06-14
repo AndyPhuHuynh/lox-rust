@@ -1,5 +1,5 @@
 use crate::environment::EnvRef;
-use crate::runtime::value::{ClassRef, ClassRefExt, FunctionRef, FunctionRefExt};
+use crate::runtime::value::{ClassRef, ClassRefExt, FunctionRef};
 use crate::syntax_tree::expression::Expr;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -106,7 +106,7 @@ impl FunctionDecl {
     }
 
     pub fn into_ref(self, closure: &mut EnvRef) -> FunctionRef {
-        FunctionRef::new_func(
+        FunctionRef::new(
             self.name.clone(),
             self.params.into_iter().map(|(param, _)| param).collect(),
             self.body,

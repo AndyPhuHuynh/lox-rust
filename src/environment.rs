@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Environment {
     values: HashMap<String, RuntimeValue>,
     enclosing: Option<EnvRef>,
@@ -37,6 +37,12 @@ impl Environment {
 #[derive(Debug, Clone)]
 pub struct EnvRef {
     env: Rc<RefCell<Environment>>,
+}
+
+impl PartialEq for EnvRef {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.env, &other.env)
+    }
 }
 
 impl EnvRef {

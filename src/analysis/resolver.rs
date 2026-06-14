@@ -101,6 +101,9 @@ impl Resolver {
         self.declare_variable(&class.name, class.line);
         self.define_variable(&class.name);
 
+        self.begin_scope();
+        self.scopes.last_mut().unwrap().insert("this".to_string(), true);
+
         let mut encountered = HashSet::<String>::new();
         for method in &mut class.methods {
             if encountered.contains(&method.name) {
@@ -110,6 +113,8 @@ impl Resolver {
             encountered.insert(method.name.clone());
             self.resolve_function(method, FunctionType::Method);
         }
+
+        self.end_scope();
     }
 
     fn resolve_function_stmt(&mut self, func: &mut FunctionDecl) {
@@ -182,6 +187,7 @@ impl Resolver {
             Expr::Call(call) => self.resolve_call_expr(call),
             Expr::Get(get) => self.resolve_get_expr(get),
             Expr::Set(set) => self.resolve_set_expr(set),
+            Expr::This(this) => self.resolve_local_variable(this),
             Expr::Grouping(grouping) => self.resolve_grouping_expr(grouping),
             Expr::Variable(variable) => self.resolve_variable_expr(variable),
             Expr::Assignment(assignment) => self.resolve_assignment_expr(assignment),
