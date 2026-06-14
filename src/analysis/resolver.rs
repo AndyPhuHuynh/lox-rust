@@ -1,7 +1,7 @@
 use crate::error::{error, log_redefinition_error};
 use crate::syntax_tree::expression::{
     Assignment, AssignmentTarget, BinaryExpr, Call, Expr, Get, GroupingExpr, LogicalExpr, Set,
-    UnaryExpr, Variable,
+    Super, UnaryExpr, Variable,
 };
 use crate::syntax_tree::statement::{
     Block, ClassDecl, FunctionDecl, If, Print, Return, Stmt, Var, While,
@@ -16,9 +16,10 @@ enum FunctionType {
     Method,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum ClassType {
     None,
+    SubClass,
     Class,
 }
 
@@ -121,7 +122,13 @@ impl Resolver {
                 );
                 self.error_encountered = true;
             }
+            self.current_class_type = ClassType::SubClass;
             self.resolve_variable_expr(superclass);
+            self.begin_scope();
+            self.scopes
+                .last_mut()
+                .unwrap()
+                .insert("super".to_string(), true);
         }
 
         self.begin_scope();
@@ -146,6 +153,9 @@ impl Resolver {
             self.resolve_function(method, func_type);
         }
 
+        if class.superclass.is_some() {
+            self.end_scope();
+        }
         self.end_scope();
         self.current_class_type = enclosing_class;
     }
@@ -228,6 +238,7 @@ impl Resolver {
             Expr::Call(call) => self.resolve_call_expr(call),
             Expr::Get(get) => self.resolve_get_expr(get),
             Expr::Set(set) => self.resolve_set_expr(set),
+            Expr::Super(super_) => self.resolve_super_expr(super_),
             Expr::This(this) => self.resolve_this_expr(this),
             Expr::Grouping(grouping) => self.resolve_grouping_expr(grouping),
             Expr::Variable(variable) => self.resolve_variable_expr(variable),
@@ -263,6 +274,17 @@ impl Resolver {
     fn resolve_set_expr(&mut self, set_expr: &mut Set) {
         self.resolve_expression(&mut set_expr.value);
         self.resolve_expression(&mut set_expr.object);
+    }
+
+    fn resolve_super_expr(&mut self, super_expr: &mut Super) {
+        if self.current_class_type == ClassType::None {
+            error(super_expr.super_.line, "Cannot use 'super' from outside a class");
+            self.error_encountered = true;
+        } else if self.current_class_type != ClassType::SubClass {
+            error(super_expr.super_.line, "Cannot use 'super' in a class with no superclass");
+            self.error_encountered = true;
+        }
+        self.resolve_local_variable(&mut super_expr.super_);
     }
 
     fn resolve_this_expr(&mut self, this_expr: &mut Variable) {

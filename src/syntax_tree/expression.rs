@@ -9,6 +9,7 @@ pub enum Expr {
     Call(Call),
     Get(Get),
     Set(Set),
+    Super(Super),
     This(Variable),
     Grouping(GroupingExpr),
     Variable(Variable),
@@ -52,6 +53,10 @@ impl Expr {
         Expr::Set(Set::new(expr, name, value, line))
     }
 
+    pub fn super_(super_: Variable, method: String) -> Expr {
+        Expr::Super(Super::new(super_, method))
+    }
+
     pub fn this(name: String, line: usize) -> Expr {
         Expr::This(Variable::new(name, line))
     }
@@ -83,6 +88,7 @@ impl Display for Expr {
             Expr::Call(expr) => write!(f, "{expr}"),
             Expr::Get(expr) => write!(f, "{expr}"),
             Expr::Set(expr) => write!(f, "{expr}"),
+            Expr::Super(expr) => write!(f, "{expr}"),
             Expr::This(_) => write!(f, "(this)"),
             Expr::Grouping(expr) => write!(f, "{expr}"),
             Expr::Variable(expr) => write!(f, "{expr}"),
@@ -346,6 +352,24 @@ impl Set {
 impl Display for Set {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "(set {}.{}, {})", self.object, self.name, self.value)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Super {
+    pub super_: Variable,
+    pub method: String,
+}
+
+impl Super {
+    pub fn new(super_: Variable, method: String) -> Self {
+        Self { super_, method }
+    }
+}
+
+impl Display for Super {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(super {})", self.method)
     }
 }
 

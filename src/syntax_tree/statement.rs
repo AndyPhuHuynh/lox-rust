@@ -114,19 +114,27 @@ impl ClassDecl {
             })
             .transpose()?;
 
+        let mut new_env = if let Some(superclass) = &superclass {
+            let env = EnvRef::with_enclosing(Some(closure.clone()));
+            env.define("super".to_string(), RuntimeValue::Class(superclass.clone()));
+            env
+        } else {
+            closure.clone()
+        };
+
         let mut methods: HashMap<String, FunctionRef> = HashMap::new();
         for method in self.methods {
             let is_initializer = method.name == "init";
             methods.insert(
                 method.name.clone(),
-                method.into_ref(is_initializer, closure),
+                method.into_ref(is_initializer, &mut new_env),
             );
         }
         Ok(ClassRef::new_class(
             self.name,
             superclass,
             methods,
-            closure.clone(),
+            new_env.clone(),
         ))
     }
 }

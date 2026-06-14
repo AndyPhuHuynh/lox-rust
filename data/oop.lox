@@ -37,6 +37,11 @@ class Sushi < Food {
         this.favorite = "sushi forever";
     }
 
+    eat() {
+        super.eat();
+        this.savor();
+    }
+
     savor() {
         print "Savoring sushi";
     }
@@ -44,4 +49,3 @@ class Sushi < Food {
 
 var sushi = Sushi();
 sushi.eat();
-sushi.savor();

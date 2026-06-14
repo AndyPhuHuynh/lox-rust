@@ -105,7 +105,7 @@ impl Class {
             return Some(method.clone());
         }
         if let Some(superclass) = self.superclass.as_ref() {
-            return superclass.borrow().get_method(name)
+            return superclass.borrow().get_method(name);
         }
         None
     }

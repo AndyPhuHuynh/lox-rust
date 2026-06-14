@@ -53,7 +53,6 @@ fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
     let mut statements = match parser.parse() {
         Ok(stmt) => stmt,
         Err(_) => {
-            println!("Parse error");
             if exit_on_error {
                 exit(65);
             } else {

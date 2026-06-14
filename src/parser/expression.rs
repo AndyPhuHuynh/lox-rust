@@ -1,7 +1,7 @@
 use crate::error::error_token;
 use crate::parser::{ParseError, ParseResult, Parser};
 use crate::syntax_tree::expression::{
-    AssignmentTarget, BinaryOp, BinaryOpToken, Expr, LogicalOp, UnaryOp, UnaryOpToken,
+    AssignmentTarget, BinaryOp, BinaryOpToken, Expr, LogicalOp, UnaryOp, UnaryOpToken, Variable,
 };
 use crate::token::{TokenKind, TokenType};
 
@@ -249,6 +249,14 @@ impl Parser {
             TokenType::Nil => Ok(Expr::literal_nil()),
             TokenType::Number(num) => Ok(Expr::literal_num(num)),
             TokenType::String(str) => Ok(Expr::literal_str(str.as_str())),
+            TokenType::Super => {
+                self.consume(TokenKind::Dot, "Expect '.' after super token")?;
+                let method = self.consume(TokenKind::Identifier, "Expect method name after '.'")?;
+                Ok(Expr::super_(
+                    Variable::new(token.lexeme.clone(), token.line),
+                    method.lexeme,
+                ))
+            }
             TokenType::This => Ok(Expr::this("this".to_string(), token.line)),
             TokenType::LeftParen => {
                 let expr = self.expression()?;

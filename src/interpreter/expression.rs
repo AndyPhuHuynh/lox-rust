@@ -6,7 +6,7 @@ use crate::runtime::value::{InstanceRefExt, RuntimeValue};
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
 use crate::syntax_tree::expression::{
     Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, Get, GroupingExpr, Literal,
-    LogicalExpr, LogicalOp, Set, UnaryExpr, UnaryOp, Variable,
+    LogicalExpr, LogicalOp, Set, Super, UnaryExpr, UnaryOp, Variable,
 };
 
 pub trait Evaluate {
@@ -31,6 +31,7 @@ impl Evaluate for Expr {
             Expr::Call(expr) => expr.evaluate(interpreter, env),
             Expr::Get(expr) => expr.evaluate(interpreter, env),
             Expr::Set(expr) => expr.evaluate(interpreter, env),
+            Expr::Super(expr) => expr.evaluate(interpreter, env),
             Expr::This(expr) => expr.evaluate(interpreter, env),
             Expr::Grouping(expr) => expr.evaluate(interpreter, env),
             Expr::Variable(expr) => expr.evaluate(interpreter, env),
@@ -162,6 +163,39 @@ impl Evaluate for Set {
             ))
             .at_line(self.line)),
         }
+    }
+}
+
+impl Evaluate for Super {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
+        let superclass = match EnvRef::get_var(&self.super_, &interpreter.globals, env)? {
+            RuntimeValue::Class(class) => class,
+            _ => unreachable!("Super is not a class."),
+        };
+        let this = env
+            .get_at(
+                "this",
+                self.super_
+                    .local_distance
+                    .expect("Super is not a local distance object.")
+                    - 1,
+            )
+            .expect("This not found");
+        let this = match this {
+            RuntimeValue::Instance(instance) => instance,
+            _ => unreachable!("This is not an instance."),
+        };
+
+        let method = superclass.borrow().get_method(&self.method).ok_or(
+            RuntimeException::with_message(&format!("Undefined property '{}'", self.method))
+            .at_line(self.super_.line)
+        )?;
+
+        Ok(RuntimeValue::Function(method.bind(this)))
     }
 }
 
