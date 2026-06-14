@@ -1,6 +1,9 @@
 use crate::environment::EnvRef;
-use crate::runtime::value::{ClassRef, ClassRefExt, FunctionRef};
-use crate::syntax_tree::expression::Expr;
+use crate::interpreter::Interpreter;
+use crate::runtime::RuntimeResult;
+use crate::runtime::error::RuntimeException;
+use crate::runtime::value::{ClassRef, ClassRefExt, FunctionRef, RuntimeValue};
+use crate::syntax_tree::expression::{Expr, Variable};
 use std::collections::HashMap;
 use std::fmt::Display;
 
@@ -22,8 +25,13 @@ impl Stmt {
         Self::Block(Block::new(stmts))
     }
 
-    pub fn class(name: String, methods: Vec<FunctionDecl>, line: usize) -> Self {
-        Self::Class(ClassDecl::new(name, methods, line))
+    pub fn class(
+        name: String,
+        superclass: Option<Variable>,
+        methods: Vec<FunctionDecl>,
+        line: usize,
+    ) -> Self {
+        Self::Class(ClassDecl::new(name, superclass, methods, line))
     }
 
     pub fn expr(expr: Expr) -> Self {
@@ -65,20 +73,47 @@ impl Block {
 #[derive(Debug, Clone)]
 pub struct ClassDecl {
     pub name: String,
+    pub superclass: Option<Variable>,
     pub methods: Vec<FunctionDecl>,
     pub line: usize,
 }
 
 impl ClassDecl {
-    pub fn new(name: String, methods: Vec<FunctionDecl>, line: usize) -> Self {
+    pub fn new(
+        name: String,
+        superclass: Option<Variable>,
+        methods: Vec<FunctionDecl>,
+        line: usize,
+    ) -> Self {
         Self {
             name,
+            superclass,
             methods,
             line,
         }
     }
 
-    pub fn into_ref(self, closure: &mut EnvRef) -> ClassRef {
+    pub fn into_ref(
+        self,
+        interpreter: &mut Interpreter,
+        closure: &mut EnvRef,
+    ) -> RuntimeResult<ClassRef> {
+        let superclass: Option<ClassRef> = self
+            .superclass
+            .as_ref()
+            .map(|superclass| {
+                let value = EnvRef::get_var(superclass, &interpreter.globals, closure)?;
+                match value {
+                    RuntimeValue::Class(class) => Ok(class),
+                    _ => Err(RuntimeException::with_message(&format!(
+                        "{} is not a class. Superclass must be a class",
+                        superclass.name
+                    ))
+                    .at_line(superclass.line)),
+                }
+            })
+            .transpose()?;
+
         let mut methods: HashMap<String, FunctionRef> = HashMap::new();
         for method in self.methods {
             let is_initializer = method.name == "init";
@@ -87,7 +122,12 @@ impl ClassDecl {
                 method.into_ref(is_initializer, closure),
             );
         }
-        ClassRef::new_class(self.name, methods, closure.clone())
+        Ok(ClassRef::new_class(
+            self.name,
+            superclass,
+            methods,
+            closure.clone(),
+        ))
     }
 }
 

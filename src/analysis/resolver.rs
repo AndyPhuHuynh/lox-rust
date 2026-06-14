@@ -113,6 +113,17 @@ impl Resolver {
         self.declare_variable(&class.name, class.line);
         self.define_variable(&class.name);
 
+        if let Some(superclass) = &mut class.superclass {
+            if superclass.name == class.name {
+                error(
+                    class.line,
+                    format!("Class {} cannot inherit from itself", class.name),
+                );
+                self.error_encountered = true;
+            }
+            self.resolve_variable_expr(superclass);
+        }
+
         self.begin_scope();
         self.scopes
             .last_mut()

@@ -58,29 +58,56 @@ impl PartialEq for RuntimeValue {
 pub type ClassRef = Rc<RefCell<Class>>;
 
 pub trait ClassRefExt {
-    fn new_class(name: String, methods: HashMap<String, FunctionRef>, closure: EnvRef) -> ClassRef;
+    fn new_class(
+        name: String,
+        superclass: Option<ClassRef>,
+        methods: HashMap<String, FunctionRef>,
+        closure: EnvRef,
+    ) -> ClassRef;
 }
 
 impl ClassRefExt for ClassRef {
-    fn new_class(name: String, methods: HashMap<String, FunctionRef>, closure: EnvRef) -> ClassRef {
-        Rc::new(RefCell::new(Class::new(name, methods, closure)))
+    fn new_class(
+        name: String,
+        superclass: Option<ClassRef>,
+        methods: HashMap<String, FunctionRef>,
+        closure: EnvRef,
+    ) -> ClassRef {
+        Rc::new(RefCell::new(Class::new(name, superclass, methods, closure)))
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Class {
     pub name: String,
+    pub superclass: Option<ClassRef>,
     pub methods: HashMap<String, FunctionRef>,
     pub closure: EnvRef,
 }
 
 impl Class {
-    pub fn new(name: String, methods: HashMap<String, FunctionRef>, closure: EnvRef) -> Self {
+    pub fn new(
+        name: String,
+        superclass: Option<ClassRef>,
+        methods: HashMap<String, FunctionRef>,
+        closure: EnvRef,
+    ) -> Self {
         Self {
             name,
+            superclass,
             methods,
             closure,
         }
+    }
+
+    pub fn get_method(&self, name: &str) -> Option<FunctionRef> {
+        if let Some(method) = self.methods.get(name) {
+            return Some(method.clone());
+        }
+        if let Some(superclass) = self.superclass.as_ref() {
+            return superclass.borrow().get_method(name)
+        }
+        None
     }
 }
 
@@ -179,7 +206,7 @@ impl InstanceRefExt for InstanceRef {
         if let Some(value) = self.borrow().fields.get(name) {
             return Some(value.clone());
         }
-        if let Some(value) = self.borrow().class.borrow().methods.get(name) {
+        if let Some(value) = self.borrow().class.borrow().get_method(name) {
             return Some(RuntimeValue::Function(value.clone().bind(self.clone())));
         }
         None

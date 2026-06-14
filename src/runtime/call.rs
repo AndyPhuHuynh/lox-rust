@@ -77,9 +77,9 @@ impl Callable for ClassRef {
         self,
         args: &[RuntimeValue],
         interpreter: &mut Interpreter,
-        env: &mut EnvRef,
+        _: &mut EnvRef,
     ) -> RuntimeResult<RuntimeValue> {
-        if let Some(init) = self.borrow().methods.get("init") {
+        if let Some(init) = self.borrow().get_method("init") {
             if args.len() != init.func.borrow().params.len() {
                 return Err(RuntimeException::arity_error(
                     &format!("{}.init", self.borrow().name),
@@ -90,7 +90,7 @@ impl Callable for ClassRef {
             let instance = InstanceRef::new_instance(self.clone());
             init.clone()
                 .bind(instance.clone())
-                .call(args, interpreter, env)?;
+                .call(args, interpreter, &mut self.borrow().closure.clone())?;
             Ok(RuntimeValue::Instance(instance))
         } else {
             if args.len() != 0 {

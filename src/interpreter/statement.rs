@@ -42,9 +42,9 @@ impl Execute for Block {
 }
 
 impl Execute for ClassDecl {
-    fn execute(&self, _: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<()> {
+    fn execute(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<()> {
         env.define(self.name.clone(), RuntimeValue::Nil);
-        let class_ref = RuntimeValue::Class(self.clone().into_ref(env));
+        let class_ref = RuntimeValue::Class(self.clone().into_ref(interpreter, env)?);
         env.assign(self.name.clone(), class_ref);
         Ok(())
     }

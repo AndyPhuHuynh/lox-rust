@@ -1,6 +1,6 @@
 use crate::error::error_token;
 use crate::parser::{ParseResult, Parser};
-use crate::syntax_tree::expression::Expr;
+use crate::syntax_tree::expression::{Expr, Variable};
 use crate::syntax_tree::statement::{FunctionDecl, Stmt};
 use crate::token::TokenKind;
 
@@ -27,6 +27,16 @@ impl Parser {
 
     fn class_declaration(&mut self) -> ParseResult<Stmt> {
         let name = self.consume(TokenKind::Identifier, "Expect class name")?;
+        let superclass: Option<Variable> = if self.match_token_kind(&[TokenKind::Less]) {
+            let superclass_token = self.consume(TokenKind::Identifier, "Expect superclass name")?;
+            Some(Variable::new(
+                superclass_token.lexeme,
+                superclass_token.line,
+            ))
+        } else {
+            None
+        };
+
         self.consume(TokenKind::LeftBrace, "Expect '{' after class name")?;
 
         let mut methods: Vec<FunctionDecl> = Vec::new();
@@ -35,7 +45,7 @@ impl Parser {
         }
 
         self.consume(TokenKind::RightBrace, "Expect '}' after class body")?;
-        Ok(Stmt::class(name.lexeme, methods, name.line))
+        Ok(Stmt::class(name.lexeme, superclass, methods, name.line))
     }
 
     fn function_declaration(&mut self, kind: &str) -> ParseResult<FunctionDecl> {

@@ -181,13 +181,7 @@ impl Evaluate for Variable {
         interpreter: &mut Interpreter,
         env: &mut EnvRef,
     ) -> RuntimeResult<RuntimeValue> {
-        match self.local_distance {
-            None => interpreter.globals.get(self.name.as_str()),
-            Some(distance) => env.get_at(self.name.as_str(), distance),
-        }
-        .ok_or(RuntimeException::with_message(
-            format!("Undefined variable at line {}: {}", self.line, self.name).as_str(),
-        ))
+        EnvRef::get_var(self, &interpreter.globals, &env)
     }
 }
 
@@ -200,15 +194,7 @@ impl Evaluate for Assignment {
         match &self.target {
             AssignmentTarget::Variable(var) => {
                 let rhs_value = self.value.evaluate(interpreter, env)?;
-                match var.local_distance {
-                    None => interpreter
-                        .globals
-                        .assign(var.name.clone(), rhs_value.clone()),
-                    Some(distance) => env.assign_at(var.name.clone(), rhs_value.clone(), distance),
-                }
-                .ok_or(RuntimeException::with_message(
-                    format!("Undefined variable at line {}: {}", var.line, var.name).as_str(),
-                ))
+                EnvRef::assign_var(var, rhs_value, &mut interpreter.globals, env)
             }
         }
     }

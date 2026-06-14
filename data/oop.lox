@@ -21,3 +21,27 @@ inst.eat();
 
 inst.init("french fries", false);
 ref.eat();
+
+class Drink {}
+print Food == Food;
+print Drink == Drink;
+print Food == Drink;
+
+var food2 = Food("hot dog", false);
+print inst.eat == inst.eat;
+
+print "--------";
+
+class Sushi < Food {
+    init() {
+        this.favorite = "sushi forever";
+    }
+
+    savor() {
+        print "Savoring sushi";
+    }
+}
+
+var sushi = Sushi();
+sushi.eat();
+sushi.savor();
