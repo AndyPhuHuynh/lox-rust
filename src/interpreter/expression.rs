@@ -1,10 +1,15 @@
 use crate::environment::EnvRef;
 use crate::interpreter::Interpreter;
+use crate::runtime::array::{ArrayLen, ArrayPop, ArrayPush, ArrayRef, ArrayRefExt};
 use crate::runtime::call::Callable;
 use crate::runtime::error::RuntimeException;
-use crate::runtime::value::{ArrayRef, ArrayRefExt, InstanceRefExt, RuntimeValue};
+use crate::runtime::value::{InstanceRefExt, RuntimeValue};
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
-use crate::syntax_tree::expression::{ArrayAccessExpr, ArrayExpr, Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, Get, GroupingExpr, Literal, LogicalExpr, LogicalOp, Set, Super, UnaryExpr, UnaryOp, Variable};
+use crate::syntax_tree::expression::{
+    ArrayAccessExpr, ArrayExpr, Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr,
+    Get, GroupingExpr, Literal, LogicalExpr, LogicalOp, Set, Super, UnaryExpr, UnaryOp, Variable,
+};
+use std::rc::Rc;
 
 pub trait Evaluate {
     fn evaluate(
@@ -66,26 +71,34 @@ impl Evaluate for ArrayExpr {
 }
 
 impl Evaluate for ArrayAccessExpr {
-    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
         let array = match self.array.evaluate(interpreter, env)? {
             RuntimeValue::Array(array) => array,
             _ => {
                 return Err(RuntimeException::with_message(
-                    "Attempting to index non-array"
-                )).at_line(self.line)
+                    "Attempting to index non-array",
+                ))
+                .at_line(self.line);
             }
         };
 
-        let index = self.index.evaluate(interpreter, env)?.as_index().at_line(self.line)?;
+        let index = self
+            .index
+            .evaluate(interpreter, env)?
+            .as_index()
+            .at_line(self.line)?;
 
         if index >= array.borrow().elements.len() {
-            return Err(RuntimeException::with_message(
-                &format!(
-                    "Index {} out of bounds for array length {}",
-                    index,
-                    array.borrow().elements.len()
-                )
-            ).at_line(self.line));
+            return Err(RuntimeException::with_message(&format!(
+                "Index {} out of bounds for array length {}",
+                index,
+                array.borrow().elements.len()
+            ))
+            .at_line(self.line));
         }
 
         Ok(array.borrow().elements[index].clone())
@@ -160,7 +173,16 @@ impl Evaluate for Call {
             .iter()
             .map(|arg| arg.evaluate(interpreter, env))
             .collect::<RuntimeResult<Vec<_>>>()?;
-        callee.call(&arguments, interpreter, env).at_line(self.line)
+
+        match callee {
+            RuntimeValue::Function(func) => func.call(&arguments, interpreter, env),
+            RuntimeValue::NativeFunction(func) => func.call(&arguments, interpreter, env),
+            RuntimeValue::Class(class) => class.call(&arguments, interpreter, env),
+            _ => Err(RuntimeException::with_message(
+                "Only functions or classes can be called",
+            )),
+        }
+        .at_line(self.line)
     }
 }
 
@@ -172,6 +194,21 @@ impl Evaluate for Get {
     ) -> RuntimeResult<RuntimeValue> {
         let object = self.expr.evaluate(interpreter, env)?;
         match object {
+            RuntimeValue::Array(array) => {
+                if self.name == "len" {
+                    Ok(RuntimeValue::NativeFunction(Rc::new(ArrayLen { array })))
+                } else if self.name == "push" {
+                    Ok(RuntimeValue::NativeFunction(Rc::new(ArrayPush { array })))
+                } else if self.name == "pop" {
+                    Ok(RuntimeValue::NativeFunction(Rc::new(ArrayPop { array })))
+                } else {
+                    Err(RuntimeException::with_message(&format!(
+                        "Undefined property '{}'",
+                        self.name
+                    ))
+                    .at_line(self.line))
+                }
+            }
             RuntimeValue::Instance(instance) => instance.get(&self.name).ok_or(
                 RuntimeException::with_message(&format!("Undefined property '{}'", self.name))
                     .at_line(self.line),

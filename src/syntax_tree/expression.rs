@@ -164,7 +164,7 @@ impl ArrayAccessExpr {
         ArrayAccessExpr {
             array: Box::new(array),
             index: Box::new(index),
-            line
+            line,
         }
     }
 }

@@ -1,13 +1,15 @@
 use crate::environment::EnvRef;
+use crate::runtime::RuntimeResult;
+pub(crate) use crate::runtime::array::ArrayRef;
+use crate::runtime::call::Callable;
+use crate::runtime::error::RuntimeException;
 use crate::syntax_tree::statement::Stmt;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::rc::Rc;
-use crate::runtime::error::RuntimeException;
-use crate::runtime::RuntimeResult;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum RuntimeValue {
     Nil,
     Number(f64),
@@ -15,6 +17,7 @@ pub enum RuntimeValue {
     Bool(bool),
     Array(ArrayRef),
     Function(FunctionRef),
+    NativeFunction(Rc<dyn Callable>),
     Class(ClassRef),
     Instance(InstanceRef),
 }
@@ -38,8 +41,27 @@ impl Display for RuntimeValue {
             RuntimeValue::Bool(bool) => write!(f, "{}", bool),
             RuntimeValue::Array(array) => write!(f, "{}", array.borrow()),
             RuntimeValue::Function(func) => write!(f, "{}", func),
+            RuntimeValue::NativeFunction(_) => write!(f, "<native>"),
             RuntimeValue::Class(class) => write!(f, "{}", class.borrow()),
             RuntimeValue::Instance(instance) => write!(f, "{}", instance.borrow()),
+        }
+    }
+}
+
+impl Debug for RuntimeValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RuntimeValue::Nil => write!(f, "RuntimeValue::Nil"),
+            RuntimeValue::Number(num) => write!(f, "RuntimeValue::Number({})", num),
+            RuntimeValue::String(str) => write!(f, "RuntimeValue::String({})", str),
+            RuntimeValue::Bool(bool) => write!(f, "RuntimeValue::Bool({})", bool),
+            RuntimeValue::Array(array) => write!(f, "RuntimeValue::Array({})", array.borrow()),
+            RuntimeValue::Function(func) => write!(f, "RuntimeValue::Function({})", func),
+            RuntimeValue::NativeFunction(_) => write!(f, "RuntimeValue::NativeFunction"),
+            RuntimeValue::Class(class) => write!(f, "RuntimeValue::Class({})", class.borrow()),
+            RuntimeValue::Instance(instance) => {
+                write!(f, "RuntimeValue::Instance({})", instance.borrow())
+            }
         }
     }
 }
@@ -59,57 +81,25 @@ impl PartialEq for RuntimeValue {
     }
 }
 
-pub type ArrayRef = Rc<RefCell<Array>>;
-
-pub trait ArrayRefExt {
-    fn new_array(elements: Vec<RuntimeValue>) -> Self;
-}
-
-impl ArrayRefExt for ArrayRef {
-    fn new_array(elements: Vec<RuntimeValue>) -> Self {
-        Rc::new(RefCell::new(Array::new(elements)))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Array {
-    pub elements: Vec<RuntimeValue>,
-}
-
-impl Array {
-    pub fn new(elements: Vec<RuntimeValue>) -> Self {
-        Self { elements }
-    }
-}
-
-impl Display for Array {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[")?;
-        if !self.elements.is_empty() {
-            write!(f, "{}", self.elements[0])?;
-        }
-        for i in 1..self.elements.len() {
-            write!(f, ", {}", self.elements[i])?;
-        }
-        write!(f, "]")
-    }
-}
-
 impl RuntimeValue {
     pub fn as_index(&self) -> RuntimeResult<usize> {
         match self {
             RuntimeValue::Number(num) => {
                 if *num < 0.0 {
-                    Err(RuntimeException::with_message("Array index cannot be negative"))
+                    Err(RuntimeException::with_message(
+                        "Array index cannot be negative",
+                    ))
                 } else if num.fract() != 0.0 {
-                    Err(RuntimeException::with_message("Array index must be an integer value"))
+                    Err(RuntimeException::with_message(
+                        "Array index must be an integer value",
+                    ))
                 } else {
                     Ok(*num as usize)
                 }
-            },
-            _ => {
-                Err(RuntimeException::with_message("Array index must be a number"))
             }
+            _ => Err(RuntimeException::with_message(
+                "Array index must be a number",
+            )),
         }
     }
 }
@@ -171,7 +161,7 @@ impl Class {
 }
 
 impl Display for Class {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<class {}>", self.name)
     }
 }
@@ -219,7 +209,7 @@ impl PartialEq for FunctionRef {
 }
 
 impl Display for FunctionRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<fn {}>", self.func.borrow())
     }
 }
@@ -244,7 +234,7 @@ impl Function {
 }
 
 impl Display for Function {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<fn {}>", self.name)
     }
 }

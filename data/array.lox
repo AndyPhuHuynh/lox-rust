@@ -5,3 +5,17 @@ var a = [1, empty, "hello world!"];
 print empty;
 print one;
 print a[2];
+print a.len();
+
+var nums = [];
+print nums;
+
+for (var i = 0; i < 5; i = i + 1) {
+    nums.push(i);
+}
+print nums;
+
+for (var i = 0; i < 3; i = i + 1) {
+    nums.pop();
+}
+print nums;

@@ -1,5 +1,8 @@
 use crate::error::{error, log_redefinition_error};
-use crate::syntax_tree::expression::{ArrayAccessExpr, ArrayExpr, Assignment, AssignmentTarget, BinaryExpr, Call, Expr, Get, GroupingExpr, LogicalExpr, Set, Super, UnaryExpr, Variable};
+use crate::syntax_tree::expression::{
+    ArrayAccessExpr, ArrayExpr, Assignment, AssignmentTarget, BinaryExpr, Call, Expr, Get,
+    GroupingExpr, LogicalExpr, Set, Super, UnaryExpr, Variable,
+};
 use crate::syntax_tree::statement::{
     Block, ClassDecl, FunctionDecl, If, Print, Return, Stmt, Var, While,
 };
