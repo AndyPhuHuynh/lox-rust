@@ -2,12 +2,9 @@ use crate::environment::EnvRef;
 use crate::interpreter::Interpreter;
 use crate::runtime::call::Callable;
 use crate::runtime::error::RuntimeException;
-use crate::runtime::value::{InstanceRefExt, RuntimeValue};
+use crate::runtime::value::{ArrayRef, ArrayRefExt, InstanceRefExt, RuntimeValue};
 use crate::runtime::{RuntimeResult, RuntimeResultExt};
-use crate::syntax_tree::expression::{
-    Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, Get, GroupingExpr, Literal,
-    LogicalExpr, LogicalOp, Set, Super, UnaryExpr, UnaryOp, Variable,
-};
+use crate::syntax_tree::expression::{ArrayAccessExpr, ArrayExpr, Assignment, AssignmentTarget, BinaryExpr, BinaryOp, Call, Expr, Get, GroupingExpr, Literal, LogicalExpr, LogicalOp, Set, Super, UnaryExpr, UnaryOp, Variable};
 
 pub trait Evaluate {
     fn evaluate(
@@ -25,6 +22,8 @@ impl Evaluate for Expr {
     ) -> RuntimeResult<RuntimeValue> {
         match self {
             Expr::Literal(expr) => expr.evaluate(interpreter, env),
+            Expr::Array(expr) => expr.evaluate(interpreter, env),
+            Expr::ArrayAccess(expr) => expr.evaluate(interpreter, env),
             Expr::Unary(expr) => expr.evaluate(interpreter, env),
             Expr::Binary(expr) => expr.evaluate(interpreter, env),
             Expr::Logical(expr) => expr.evaluate(interpreter, env),
@@ -48,6 +47,48 @@ impl Evaluate for Literal {
             Literal::Bool(bool) => Ok(RuntimeValue::Bool(*bool)),
             Literal::Nil => Ok(RuntimeValue::Nil),
         }
+    }
+}
+
+impl Evaluate for ArrayExpr {
+    fn evaluate(
+        &self,
+        interpreter: &mut Interpreter,
+        env: &mut EnvRef,
+    ) -> RuntimeResult<RuntimeValue> {
+        let elements = self
+            .elements
+            .iter()
+            .map(|e| e.evaluate(interpreter, env))
+            .collect::<Result<Vec<RuntimeValue>, _>>()?;
+        Ok(RuntimeValue::Array(ArrayRef::new_array(elements)))
+    }
+}
+
+impl Evaluate for ArrayAccessExpr {
+    fn evaluate(&self, interpreter: &mut Interpreter, env: &mut EnvRef) -> RuntimeResult<RuntimeValue> {
+        let array = match self.array.evaluate(interpreter, env)? {
+            RuntimeValue::Array(array) => array,
+            _ => {
+                return Err(RuntimeException::with_message(
+                    "Attempting to index non-array"
+                )).at_line(self.line)
+            }
+        };
+
+        let index = self.index.evaluate(interpreter, env)?.as_index().at_line(self.line)?;
+
+        if index >= array.borrow().elements.len() {
+            return Err(RuntimeException::with_message(
+                &format!(
+                    "Index {} out of bounds for array length {}",
+                    index,
+                    array.borrow().elements.len()
+                )
+            ).at_line(self.line));
+        }
+
+        Ok(array.borrow().elements[index].clone())
     }
 }
 
@@ -192,7 +233,7 @@ impl Evaluate for Super {
 
         let method = superclass.borrow().get_method(&self.method).ok_or(
             RuntimeException::with_message(&format!("Undefined property '{}'", self.method))
-            .at_line(self.super_.line)
+                .at_line(self.super_.line),
         )?;
 
         Ok(RuntimeValue::Function(method.bind(this)))

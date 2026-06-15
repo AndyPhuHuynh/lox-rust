@@ -4,6 +4,7 @@ use crate::token::{Token, TokenType, get_keyword};
 pub struct Scanner<'a> {
     source: &'a [u8],
     tokens: Vec<Token>,
+    error_encountered: bool,
 
     start: usize,
     current: usize,
@@ -83,6 +84,7 @@ impl<'a> Scanner<'a> {
 
         if self.is_at_end() {
             error(self.line, "Unterminated string");
+            self.error_encountered = true;
             return;
         }
 
@@ -140,6 +142,8 @@ impl<'a> Scanner<'a> {
             b')' => self.add_token(TokenType::RightParen),
             b'{' => self.add_token(TokenType::LeftBrace),
             b'}' => self.add_token(TokenType::RightBrace),
+            b'[' => self.add_token(TokenType::LeftBracket),
+            b']' => self.add_token(TokenType::RightBracket),
             b',' => self.add_token(TokenType::Comma),
             b'.' => self.add_token(TokenType::Dot),
             b'-' => self.add_token(TokenType::Minus),
@@ -169,6 +173,7 @@ impl<'a> Scanner<'a> {
                     self.identifier();
                 } else {
                     error(self.line, format!("Unexpected byte 0x{:x}", c));
+                    self.error_encountered = true;
                 }
             }
         }
@@ -180,6 +185,7 @@ impl<'a> Scanner<'a> {
         Scanner {
             source: source.as_bytes(),
             tokens: Vec::new(),
+            error_encountered: false,
 
             start: 0,
             current: 0,
@@ -187,7 +193,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> &Vec<Token> {
+    pub fn scan_tokens(&mut self) -> (&Vec<Token>, bool) {
         self.tokens.clear();
 
         while !self.is_at_end() {
@@ -197,6 +203,6 @@ impl<'a> Scanner<'a> {
 
         self.tokens
             .push(Token::new(TokenType::Eof, "".to_string(), self.line));
-        &self.tokens
+        (&self.tokens, self.error_encountered)
     }
 }

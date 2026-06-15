@@ -47,7 +47,14 @@ fn display_error(error: RuntimeException) -> String {
 
 fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
     let mut scanner = Scanner::new(&source);
-    let tokens = scanner.scan_tokens();
+    let (tokens, scanner_error_encountered) = scanner.scan_tokens();
+    if scanner_error_encountered {
+        if exit_on_error {
+            exit(65);
+        } else {
+            return;
+        }
+    }
 
     let mut parser = Parser::new(tokens.clone());
     let mut statements = match parser.parse() {

@@ -3,6 +3,8 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, Clone)]
 pub enum Expr {
     Literal(Literal),
+    Array(ArrayExpr),
+    ArrayAccess(ArrayAccessExpr),
     Unary(UnaryExpr),
     Binary(BinaryExpr),
     Logical(LogicalExpr),
@@ -31,6 +33,14 @@ impl Expr {
 
     pub fn literal_nil() -> Expr {
         Expr::Literal(Literal::Nil)
+    }
+
+    pub fn array(elements: Vec<Expr>) -> Expr {
+        Expr::Array(ArrayExpr::new(elements))
+    }
+
+    pub fn array_access(array: Expr, index: Expr, line: usize) -> Expr {
+        Expr::ArrayAccess(ArrayAccessExpr::new(array, index, line))
     }
 
     pub fn unary(operator: UnaryOpToken, expr: Expr) -> Expr {
@@ -82,6 +92,8 @@ impl Display for Expr {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
             Expr::Literal(expr) => write!(f, "{expr}"),
+            Expr::Array(expr) => write!(f, "{}", expr),
+            Expr::ArrayAccess(expr) => write!(f, "{}", expr),
             Expr::Unary(expr) => write!(f, "{expr}"),
             Expr::Binary(expr) => write!(f, "{expr}"),
             Expr::Logical(expr) => write!(f, "{expr}"),
@@ -113,6 +125,53 @@ impl Display for Literal {
             Literal::Bool(bool) => write!(f, "{bool}"),
             Literal::Nil => write!(f, "nil"),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ArrayExpr {
+    pub elements: Vec<Expr>,
+}
+
+impl ArrayExpr {
+    pub fn new(elements: Vec<Expr>) -> ArrayExpr {
+        ArrayExpr { elements }
+    }
+}
+
+impl Display for ArrayExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(array ")?;
+        if !self.elements.is_empty() {
+            write!(f, "{}", self.elements[0])?;
+        }
+        for i in 1..self.elements.len() {
+            write!(f, ", {}", self.elements[i])?;
+        }
+        write!(f, ")")
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ArrayAccessExpr {
+    pub array: Box<Expr>,
+    pub index: Box<Expr>,
+    pub line: usize,
+}
+
+impl ArrayAccessExpr {
+    pub fn new(array: Expr, index: Expr, line: usize) -> ArrayAccessExpr {
+        ArrayAccessExpr {
+            array: Box::new(array),
+            index: Box::new(index),
+            line
+        }
+    }
+}
+
+impl Display for ArrayAccessExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "(index {} {})", self.array, self.index)
     }
 }
 

@@ -1,8 +1,5 @@
 use crate::error::{error, log_redefinition_error};
-use crate::syntax_tree::expression::{
-    Assignment, AssignmentTarget, BinaryExpr, Call, Expr, Get, GroupingExpr, LogicalExpr, Set,
-    Super, UnaryExpr, Variable,
-};
+use crate::syntax_tree::expression::{ArrayAccessExpr, ArrayExpr, Assignment, AssignmentTarget, BinaryExpr, Call, Expr, Get, GroupingExpr, LogicalExpr, Set, Super, UnaryExpr, Variable};
 use crate::syntax_tree::statement::{
     Block, ClassDecl, FunctionDecl, If, Print, Return, Stmt, Var, While,
 };
@@ -232,6 +229,8 @@ impl Resolver {
     fn resolve_expression(&mut self, expr: &mut Expr) {
         match expr {
             Expr::Literal(_) => {}
+            Expr::Array(array) => self.resolve_array_expr(array),
+            Expr::ArrayAccess(access) => self.resolve_array_access_expr(access),
             Expr::Unary(unary) => self.resolve_unary_expr(unary),
             Expr::Binary(binary) => self.resolve_binary_expr(binary),
             Expr::Logical(logical) => self.resolve_logical_expr(logical),
@@ -244,6 +243,17 @@ impl Resolver {
             Expr::Variable(variable) => self.resolve_variable_expr(variable),
             Expr::Assignment(assignment) => self.resolve_assignment_expr(assignment),
         }
+    }
+
+    fn resolve_array_expr(&mut self, array_expr: &mut ArrayExpr) {
+        for element in &mut array_expr.elements {
+            self.resolve_expression(element);
+        }
+    }
+
+    fn resolve_array_access_expr(&mut self, access_expr: &mut ArrayAccessExpr) {
+        self.resolve_expression(&mut access_expr.array);
+        self.resolve_expression(&mut access_expr.index);
     }
 
     fn resolve_unary_expr(&mut self, unary_expr: &mut UnaryExpr) {
@@ -278,10 +288,16 @@ impl Resolver {
 
     fn resolve_super_expr(&mut self, super_expr: &mut Super) {
         if self.current_class_type == ClassType::None {
-            error(super_expr.super_.line, "Cannot use 'super' from outside a class");
+            error(
+                super_expr.super_.line,
+                "Cannot use 'super' from outside a class",
+            );
             self.error_encountered = true;
         } else if self.current_class_type != ClassType::SubClass {
-            error(super_expr.super_.line, "Cannot use 'super' in a class with no superclass");
+            error(
+                super_expr.super_.line,
+                "Cannot use 'super' in a class with no superclass",
+            );
             self.error_encountered = true;
         }
         self.resolve_local_variable(&mut super_expr.super_);

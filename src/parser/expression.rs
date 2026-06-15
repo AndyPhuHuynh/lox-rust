@@ -216,6 +216,10 @@ impl Parser {
             } else if self.match_token_kind(&[TokenKind::Dot]) {
                 let name = self.consume(TokenKind::Identifier, "Expect property name after '.'")?;
                 expr = Expr::get(expr, name.lexeme, name.line)
+            } else if self.match_token_kind(&[TokenKind::LeftBracket]) {
+                let index = self.expression()?;
+                self.consume(TokenKind::RightBracket, "Expect ']' after index")?;
+                expr = Expr::array_access(expr, index, self.previous().line);
             } else {
                 break;
             }
@@ -249,6 +253,19 @@ impl Parser {
             TokenType::Nil => Ok(Expr::literal_nil()),
             TokenType::Number(num) => Ok(Expr::literal_num(num)),
             TokenType::String(str) => Ok(Expr::literal_str(str.as_str())),
+            TokenType::LeftBracket => {
+                if self.match_token_kind(&[TokenKind::RightBracket]) {
+                    return Ok(Expr::array(Vec::new()));
+                }
+
+                let mut elements: Vec<Expr> = Vec::new();
+                elements.push(self.expression()?);
+                while self.match_token_kind(&[TokenKind::Comma]) {
+                    elements.push(self.expression()?);
+                }
+                self.consume(TokenKind::RightBracket, "Expect ']' after array elements")?;
+                Ok(Expr::array(elements))
+            }
             TokenType::Super => {
                 self.consume(TokenKind::Dot, "Expect '.' after super token")?;
                 let method = self.consume(TokenKind::Identifier, "Expect method name after '.'")?;
