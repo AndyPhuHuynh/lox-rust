@@ -214,7 +214,7 @@ impl Evaluate for Get {
                         self.name.len(),
                     ))
             }
-            _ => Err(RuntimeException::undefined_property(
+            _ => Err(RuntimeException::invalid_property(
                 self.name.clone(),
                 self.line,
             )),
