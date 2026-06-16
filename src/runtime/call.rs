@@ -18,7 +18,7 @@ pub trait Callable {
     fn check_arity(&self, args_len: usize) -> RuntimeResult<()> {
         if args_len != self.arity() {
             return Err(RuntimeException::arity_error(
-                &self.name(),
+                self.name().clone(),
                 self.arity(),
                 args_len,
             ));

@@ -79,8 +79,8 @@ impl Evaluate for ArrayAccessExpr {
         let array = match self.array.evaluate(interpreter, env)? {
             RuntimeValue::Array(array) => array,
             _ => {
-                return Err(RuntimeException::with_message(
-                    "Attempting to index non-array",
+                return Err(RuntimeException::invalid_array_access(
+                    "Attempting to index non-array".to_string(),
                 ))
                 .at_line(self.line);
             }
@@ -93,7 +93,7 @@ impl Evaluate for ArrayAccessExpr {
             .at_line(self.line)?;
 
         if index >= array.borrow().elements.len() {
-            return Err(RuntimeException::with_message(&format!(
+            return Err(RuntimeException::invalid_array_index(format!(
                 "Index {} out of bounds for array length {}",
                 index,
                 array.borrow().elements.len()
@@ -178,9 +178,7 @@ impl Evaluate for Call {
             RuntimeValue::Function(func) => func.call(&arguments, interpreter, env),
             RuntimeValue::NativeFunction(func) => func.call(&arguments, interpreter, env),
             RuntimeValue::Class(class) => class.call(&arguments, interpreter, env),
-            _ => Err(RuntimeException::with_message(
-                "Only functions or classes can be called",
-            )),
+            _ => Err(RuntimeException::invalid_callee()),
         }
         .at_line(self.line)
     }
@@ -202,22 +200,24 @@ impl Evaluate for Get {
                 } else if self.name == "pop" {
                     Ok(RuntimeValue::NativeFunction(Rc::new(ArrayPop { array })))
                 } else {
-                    Err(RuntimeException::with_message(&format!(
-                        "Undefined property '{}'",
-                        self.name
+                    Err(RuntimeException::undefined_property(
+                        self.name.clone(),
+                        self.line,
                     ))
-                    .at_line(self.line))
                 }
             }
-            RuntimeValue::Instance(instance) => instance.get(&self.name).ok_or(
-                RuntimeException::with_message(&format!("Undefined property '{}'", self.name))
-                    .at_line(self.line),
-            ),
-            _ => Err(RuntimeException::with_message(&format!(
-                "Unable to access property '{}'. Only instances have properties",
-                self.name
-            ))
-            .at_line(self.line)),
+            RuntimeValue::Instance(instance) => {
+                instance
+                    .get(&self.name)
+                    .ok_or(RuntimeException::undefined_property(
+                        self.name.clone(),
+                        self.name.len(),
+                    ))
+            }
+            _ => Err(RuntimeException::undefined_property(
+                self.name.clone(),
+                self.line,
+            )),
         }
     }
 }
@@ -235,11 +235,10 @@ impl Evaluate for Set {
                 instance.borrow_mut().set(&self.name, value.clone());
                 Ok(value)
             }
-            _ => Err(RuntimeException::with_message(&format!(
-                "Unable to set property '{}'. Only instances have properties",
-                self.name
-            ))
-            .at_line(self.line)),
+            _ => Err(RuntimeException::undefined_property(
+                self.name.clone(),
+                self.line,
+            )),
         }
     }
 }
@@ -269,8 +268,7 @@ impl Evaluate for Super {
         };
 
         let method = superclass.borrow().get_method(&self.method).ok_or(
-            RuntimeException::with_message(&format!("Undefined property '{}'", self.method))
-                .at_line(self.super_.line),
+            RuntimeException::undefined_property(self.method.clone(), self.super_.line),
         )?;
 
         Ok(RuntimeValue::Function(method.bind(this)))

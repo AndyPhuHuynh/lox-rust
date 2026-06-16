@@ -73,7 +73,10 @@ impl Execute for FunctionDecl {
                 env.clone(),
             )),
         ) {
-            None => Err(RuntimeException::redefinition_error(&self.name, self.line)),
+            None => Err(RuntimeException::redefinition_error(
+                self.name.clone(),
+                self.line,
+            )),
             Some(_) => Ok(()),
         }
     }
@@ -128,7 +131,10 @@ impl Execute for Var {
         }
 
         match env.define(self.name.clone(), value) {
-            None => Err(RuntimeException::redefinition_error(&self.name, self.line)),
+            None => Err(RuntimeException::redefinition_error(
+                self.name.clone(),
+                self.line,
+            )),
             Some(_) => Ok(()),
         }
     }

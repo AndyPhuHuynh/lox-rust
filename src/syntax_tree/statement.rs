@@ -105,11 +105,10 @@ impl ClassDecl {
                 let value = EnvRef::get_var(superclass, &interpreter.globals, closure)?;
                 match value {
                     RuntimeValue::Class(class) => Ok(class),
-                    _ => Err(RuntimeException::with_message(&format!(
-                        "{} is not a class. Superclass must be a class",
-                        superclass.name
-                    ))
-                    .at_line(superclass.line)),
+                    _ => Err(RuntimeException::invalid_super_class(
+                        superclass.name.clone(),
+                        superclass.line,
+                    )),
                 }
             })
             .transpose()?;

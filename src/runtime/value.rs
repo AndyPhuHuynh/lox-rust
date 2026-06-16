@@ -86,19 +86,19 @@ impl RuntimeValue {
         match self {
             RuntimeValue::Number(num) => {
                 if *num < 0.0 {
-                    Err(RuntimeException::with_message(
-                        "Array index cannot be negative",
+                    Err(RuntimeException::invalid_array_index(
+                        "Array index cannot be negative".to_string(),
                     ))
                 } else if num.fract() != 0.0 {
-                    Err(RuntimeException::with_message(
-                        "Array index must be an integer value",
+                    Err(RuntimeException::invalid_array_index(
+                        "Array index must be an integer value".to_string(),
                     ))
                 } else {
                     Ok(*num as usize)
                 }
             }
-            _ => Err(RuntimeException::with_message(
-                "Array index must be a number",
+            _ => Err(RuntimeException::invalid_array_index(
+                "Array index must be a number".to_string(),
             )),
         }
     }
@@ -282,7 +282,7 @@ impl Instance {
 }
 
 impl Display for Instance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<instance {}>", self.class.borrow().name)
     }
 }

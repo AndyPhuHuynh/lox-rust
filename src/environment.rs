@@ -93,8 +93,9 @@ impl EnvRef {
             None => global_env.get(var.name.as_str()),
             Some(distance) => current_env.get_at(var.name.as_str(), distance),
         }
-        .ok_or(RuntimeException::with_message(
-            format!("Undefined variable at line {}: {}", var.line, var.name).as_str(),
+        .ok_or(RuntimeException::undefined_variable(
+            var.name.clone(),
+            var.line,
         ))
     }
 
@@ -135,8 +136,9 @@ impl EnvRef {
             None => global_env.assign(var.name.clone(), rhs_value.clone()),
             Some(distance) => current_env.assign_at(var.name.clone(), rhs_value.clone(), distance),
         }
-        .ok_or(RuntimeException::with_message(
-            format!("Undefined variable at line {}: {}", var.line, var.name).as_str(),
+        .ok_or(RuntimeException::undefined_variable(
+            var.name.clone(),
+            var.line,
         ))
     }
 }

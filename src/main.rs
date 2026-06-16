@@ -11,39 +11,12 @@ mod token;
 use crate::analysis::resolver::Resolver;
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
-use crate::runtime::error::RuntimeException;
 use crate::scanner::Scanner;
 
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
-
-fn display_error(error: RuntimeException) -> String {
-    match error {
-        RuntimeException::RuntimeError { message, line } => {
-            if let Some(line) = line {
-                format!("Runtime error at line {}: {}", line, message)
-            } else {
-                format!("Runtime error: {}", message)
-            }
-        }
-        RuntimeException::Return {
-            value: _value,
-            line,
-        } => {
-            if let Some(line) = line {
-                format!(
-                    "Runtime error at line {}: return statement encountered outside of function or method",
-                    line
-                )
-            } else {
-                "Runtime error: return statement encountered outside of function or method"
-                    .to_string()
-            }
-        }
-    }
-}
 
 fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
     let mut scanner = Scanner::new(&source);
@@ -81,7 +54,7 @@ fn run(interpreter: &mut Interpreter, source: &str, exit_on_error: bool) {
     match interpreter.interpret(&statements) {
         Ok(_) => {}
         Err(err) => {
-            println!("{}", display_error(err));
+            println!("{err}");
             if exit_on_error {
                 exit(70);
             } else {

@@ -11,8 +11,8 @@ impl RuntimeValue {
     pub fn negation(self) -> RuntimeResult<RuntimeValue> {
         match self {
             RuntimeValue::Number(num) => Ok(RuntimeValue::Number(-num)),
-            _ => Err(RuntimeException::with_message(
-                "Negation operand must be a number",
+            _ => Err(RuntimeException::invalid_operator(
+                "Negation operand must be a number".to_string(),
             )),
         }
     }
@@ -47,8 +47,8 @@ impl RuntimeValue {
         } else if let Some((left_str, right_str)) = check_both_strings(&self, &rhs) {
             Ok(RuntimeValue::String(left_str.to_string() + right_str))
         } else {
-            Err(RuntimeException::with_message(
-                "Addition operands must either be both strings or both numbers",
+            Err(RuntimeException::invalid_operator(
+                "Addition operands must either be both strings or both numbers".to_string(),
             ))
         }
     }
@@ -57,8 +57,8 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num - right_num));
         }
-        Err(RuntimeException::with_message(
-            "Subtraction operands must both be numbers",
+        Err(RuntimeException::invalid_operator(
+            "Subtraction operands must both be numbers".to_string(),
         ))
     }
 
@@ -66,8 +66,8 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num * right_num));
         }
-        Err(RuntimeException::with_message(
-            "Multiplication operands must both be numbers",
+        Err(RuntimeException::invalid_operator(
+            "Multiplication operands must both be numbers".to_string(),
         ))
     }
 
@@ -75,8 +75,8 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Number(left_num / right_num));
         }
-        Err(RuntimeException::with_message(
-            "Division operands must both be numbers",
+        Err(RuntimeException::invalid_operator(
+            "Division operands must both be numbers".to_string(),
         ))
     }
 
@@ -84,8 +84,8 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num > right_num));
         }
-        Err(RuntimeException::with_message(
-            "Greater than operands must both be numbers",
+        Err(RuntimeException::invalid_operator(
+            "Greater than operands must both be numbers".to_string(),
         ))
     }
 
@@ -93,16 +93,16 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num >= right_num));
         }
-        Err(RuntimeException::with_message(
-            "Greater than or equal operands must both be numbers",
+        Err(RuntimeException::invalid_operator(
+            "Greater than or equal operands must both be numbers".to_string(),
         ))
     }
     pub fn less_than(self, rhs: RuntimeValue) -> RuntimeResult<RuntimeValue> {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num < right_num));
         }
-        Err(RuntimeException::with_message(
-            "Less than operands must both be numbers",
+        Err(RuntimeException::invalid_operator(
+            "Less than operands must both be numbers".to_string(),
         ))
     }
 
@@ -110,8 +110,8 @@ impl RuntimeValue {
         if let Some((left_num, right_num)) = check_both_numbers(&self, &rhs) {
             return Ok(RuntimeValue::Bool(left_num <= right_num));
         }
-        Err(RuntimeException::with_message(
-            "Less than or equal operands must both be numbers",
+        Err(RuntimeException::invalid_operator(
+            "Less than or equal operands must both be numbers".to_string(),
         ))
     }
 
